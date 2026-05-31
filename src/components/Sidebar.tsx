@@ -9,7 +9,7 @@ function Sidebar() {
 
             {/* Logo */}
             <div className="text-purple-500 text-3xl font-bold mb-8 px-2">
-                Upbeat
+                Flock
             </div>
 
             {/* Navigasyon */}

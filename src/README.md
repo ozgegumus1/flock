@@ -1,4 +1,4 @@
-# Upbeat 🎵
+# Flock 🎵
 
 Upbeat, React ve TypeScript ile geliştirilmiş modern bir sosyal medya uygulamasıdır.
 
