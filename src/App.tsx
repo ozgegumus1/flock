@@ -1,3 +1,4 @@
+import BottomNav from "./components/BottomNav";
 import EditProfilePage from "./pages/EditProfilePage";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
@@ -23,18 +24,23 @@ function App () {
 <Route path="/kayit" element={!user ? <RegisterPage /> : <Navigate to="/" />} />
 
 <Route path="/*" element={user ? (
-  <div className="bg-gray-950 min-h-screen text-white flex">
-<Sidebar />
-<Routes>
-  <Route path="/" element={<HomePage />} />
-  <Route path="/profil/:username" element={<ProfilePage />} />
-  <Route path="/profil-duzenle" element={<EditProfilePage />} />
-  <Route path="/bildirimler" element={<NotificationsPage />} />
-  <Route path="/mesajlar" element={<MessagesPage />} />
-  <Route path="/kesfes" element={ <KesfetPage />} />
-</Routes>
-<RightPanel />
-  </div>
+  <div className="bg-gray-950 min-h-screen text-white flex pb-16 md:pb-0">
+    <div className="hidden md:block">
+        <Sidebar />
+    </div>
+    <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/profil/:username" element={<ProfilePage />} />
+        <Route path="/profil-duzenle" element={<EditProfilePage />} />
+        <Route path="/bildirimler" element={<NotificationsPage />} />
+        <Route path="/mesajlar" element={<MessagesPage />} />
+        <Route path="/kesfet" element={<KesfetPage />} />
+    </Routes>
+    <div className="hidden md:block">
+        <RightPanel />
+    </div>
+    <BottomNav />
+</div>
 ) : <Navigate to="/giris" />} />
     </Routes>
     </BrowserRouter>
