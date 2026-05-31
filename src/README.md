@@ -1,10 +1,10 @@
-# Flock 🎵
+# Flock 🐦
 
-Upbeat, React ve TypeScript ile geliştirilmiş modern bir sosyal medya uygulamasıdır.
+Flock, React ve TypeScript ile geliştirilmiş modern bir sosyal medya uygulamasıdır.
 
 ## 🌐 Canlı Demo
 
-[upbeat-two.vercel.app](https://upbeat-two.vercel.app)
+[flocksocial.vercel.app](https://flocksocial.vercel.app)
 
 ## ✨ Özellikler
 
