@@ -11,6 +11,7 @@ import ProfilePage from "./pages/ProfilePage";
 import NotificationsPage from "./pages/NotificationsPage";
 import KesfetPage from "./pages/KesfetPage";
 import MessagesPage from "./pages/MessagesPage";
+import ChatPage from "./pages/ChatPage";
 
 function App () {
   const {user, loading} = useAuth()
@@ -34,6 +35,7 @@ function App () {
         <Route path="/profil-duzenle" element={<EditProfilePage />} />
         <Route path="/bildirimler" element={<NotificationsPage />} />
         <Route path="/mesajlar" element={<MessagesPage />} />
+        <Route path="/mesajlar/:username" element={<ChatPage />} />
         <Route path="/kesfet" element={<KesfetPage />} />
     </Routes>
     <div className="hidden md:block">

@@ -8,6 +8,42 @@ function Feed() {
   const { user } = useAuth()
   const [posts, setPosts] = useState<any[]>([])
   const [newPost, setNewPost] = useState('')
+
+  const fetchPosts = async () => {
+    // Engellenmiş kullanıcıların ID'lerini al
+    const { data: blocksData } = await supabase
+      .from('blocks')
+      .select('blocked_id, blocker_id')
+      .or(`blocker_id.eq.${user?.id},blocked_id.eq.${user?.id}`)
+
+    // Hem engellediğin hem de seni engelleyenlerin ID'leri
+    const blockedIds = (blocksData ?? []).map((b: any) =>
+      b.blocker_id === user?.id ? b.blocked_id : b.blocker_id
+    )
+
+    let query = supabase
+      .from('posts')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    // Engellenmiş kullanıcıların postlarını filtrele
+    if (blockedIds.length > 0) {
+      const { data: blockedProfiles } = await supabase
+        .from('profiles')
+        .select('username')
+        .in('id', blockedIds)
+
+      const blockedUsernames = (blockedProfiles ?? []).map((p: any) => p.username)
+
+      if (blockedUsernames.length > 0) {
+        query = query.not('username', 'in', `(${blockedUsernames.map((u: string) => `"${u}"`).join(',')})`)
+      }
+    }
+
+    const { data } = await query
+    if (data) setPosts(data)
+  }
+
   const handlePost = async () => {
     if (!newPost.trim()) return
 
@@ -16,22 +52,10 @@ function Feed() {
       .insert({ content: newPost, username: user?.user_metadata?.username })
 
     setNewPost('')
-
-    const { data } = await supabase
-      .from('posts')
-      .select('*')
-      .order('created_at', { ascending: false })
-    if (data) setPosts(data)
+    fetchPosts()
   }
-  useEffect(() => {
-    const fetchPosts = async () => {
-      const { data } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (data) setPosts(data)
-    }
 
+  useEffect(() => {
     fetchPosts()
   }, [])
 
