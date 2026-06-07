@@ -2,8 +2,39 @@ import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { Link } from 'react-router-dom'
 import { Home, Compass, Bell, Mail, User } from 'lucide-react'
+import { useEffect, useState } from 'react'
+
 function Sidebar() {
     const { user } = useAuth()
+    const [unreadCount, setUnreadCount] = useState(0)
+
+    useEffect(() => {
+        fetchUnread()
+
+        // Gerçek zamanlı güncelleme
+        const channel = supabase
+            .channel('unread-messages')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'messages',
+                filter: `receiver_id=eq.${user?.id}`,
+            }, () => fetchUnread())
+            .subscribe()
+
+        return () => { supabase.removeChannel(channel) }
+    }, [])
+
+    const fetchUnread = async () => {
+        const { count } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact' })
+            .eq('receiver_id', user?.id)
+            .eq('is_read', false)
+
+        setUnreadCount(count ?? 0)
+    }
+
     return (
         <div className="w-64 min-h-screen bg-gray-900 flex flex-col p-4">
 
@@ -27,7 +58,15 @@ function Sidebar() {
                 </Link>
 
                 <Link to="/mesajlar" className="flex items-center gap-3 text-white px-3 py-3 rounded-xl hover:bg-gray-800 transition">
-                    <Mail size={22} /> Mesajlar
+                    <div className="relative">
+                        <Mail size={22} />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
+                    </div>
+                    Mesajlar
                 </Link>
 
                <Link to={`/profil/${user?.user_metadata?.username}`} className='flex items-center gap-3 text-white px-3 py-3 rounded-xl hover:bg-gray-800 transition'>
@@ -52,8 +91,6 @@ function Sidebar() {
                     Çıkış Yap
                 </button>
             </div>
-
-
         </div>
     )
 }
