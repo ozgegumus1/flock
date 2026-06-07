@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
+import { Trash2 } from 'lucide-react'
 
 function MessagesPage() {
     const { user } = useAuth()
@@ -14,7 +15,6 @@ function MessagesPage() {
     }, [])
 
     const fetchConversations = async () => {
-        // Kullanıcının gönderdiği veya aldığı tüm mesajları çek
         const { data: messages } = await supabase
             .from('messages')
             .select('*')
@@ -23,20 +23,17 @@ function MessagesPage() {
 
         if (!messages) { setLoading(false); return }
 
-        // Her konuşma için karşı tarafın ID'sini bul
         const otherUserIds = [...new Set(messages.map((m: any) =>
             m.sender_id === user?.id ? m.receiver_id : m.sender_id
         ))]
 
         if (otherUserIds.length === 0) { setLoading(false); return }
 
-        // Profilleri çek
         const { data: profiles } = await supabase
             .from('profiles')
             .select('id, username, full_name')
             .in('id', otherUserIds)
 
-        // Her konuşma için son mesajı bul
         const convList = (profiles ?? []).map((profile: any) => {
             const lastMsg = messages.find((m: any) =>
                 m.sender_id === profile.id || m.receiver_id === profile.id
@@ -46,6 +43,19 @@ function MessagesPage() {
 
         setConversations(convList)
         setLoading(false)
+    }
+
+    const handleDeleteConversation = async (e: React.MouseEvent, profileId: string) => {
+        e.stopPropagation()
+
+        await supabase
+            .from('messages')
+            .delete()
+            .or(
+                `and(sender_id.eq.${user?.id},receiver_id.eq.${profileId}),and(sender_id.eq.${profileId},receiver_id.eq.${user?.id})`
+            )
+
+        setConversations((prev) => prev.filter((c) => c.profile.id !== profileId))
     }
 
     return (
@@ -75,6 +85,14 @@ function MessagesPage() {
                                     <p className="text-gray-500 text-xs mt-1 truncate">{lastMsg.content}</p>
                                 )}
                             </div>
+                            {/* Konuşmayı sil butonu */}
+                            <button
+                                onClick={(e) => handleDeleteConversation(e, profile.id)}
+                                className="text-gray-600 hover:text-red-400 transition p-2 shrink-0"
+                                title="Konuşmayı sil"
+                            >
+                                <Trash2 size={16} />
+                            </button>
                         </li>
                     ))}
                 </ul>
