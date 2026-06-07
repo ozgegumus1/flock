@@ -12,7 +12,7 @@ function ChatPage() {
     const [messages, setMessages] = useState<any[]>([])
     const [newMessage, setNewMessage] = useState('')
     const [loading, setLoading] = useState(true)
-    const [hoveredId, setHoveredId] = useState<string | null>(null)
+    
     const bottomRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -125,11 +125,11 @@ function ChatPage() {
                             <div
                                 key={msg.id}
                                 className={`flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}
-                                onMouseEnter={() => isMine && setHoveredId(msg.id)}
-                                onMouseLeave={() => setHoveredId(null)}
+                                
+                                
                             >
                                 {/* Silme butonu - sadece kendi mesajlarında hover'da görünür */}
-                                {isMine && hoveredId === msg.id && (
+                                {isMine && (
                                     <button
                                         onClick={() => handleDelete(msg.id)}
                                         className="text-gray-500 hover:text-red-400 transition p-1"
