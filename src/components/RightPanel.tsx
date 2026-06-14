@@ -7,7 +7,6 @@ function RightPanel() {
     const { user } = useAuth()
     const navigate = useNavigate()
     const [suggestions, setSuggestions] = useState<any[]>([])
-    const [following, setFollowing] = useState<Set<string>>(new Set())
 
     useEffect(() => {
         fetchSuggestions()
@@ -20,18 +19,17 @@ function RightPanel() {
             .select('following_id')
             .eq('follower_id', user?.id)
 
-        const followingIds = new Set((followData ?? []).map((f: any) => f.following_id))
-        setFollowing(followingIds)
+        const followedIds = new Set((followData ?? []).map((f: any) => f.following_id))
 
-        // Kendisi ve takip ettikleri hariç kullanıcıları getir
+        // Kendisi hariç tüm kullanıcıları getir
         const { data: profiles } = await supabase
             .from('profiles')
             .select('id, username, full_name')
             .neq('id', user?.id)
-            .limit(5)
+            .limit(10)
 
         // Takip edilmeyenleri filtrele
-        const filtered = (profiles ?? []).filter((p: any) => !followingIds.has(p.id))
+        const filtered = (profiles ?? []).filter((p: any) => !followedIds.has(p.id))
         setSuggestions(filtered.slice(0, 3))
     }
 
@@ -42,7 +40,6 @@ function RightPanel() {
             .from('follows')
             .insert({ follower_id: user?.id, following_id: profileId })
 
-        setFollowing((prev) => new Set([...prev, profileId]))
         setSuggestions((prev) => prev.filter((p) => p.id !== profileId))
     }
 
