@@ -5,8 +5,9 @@ import PostCard from "./PostCard"
 
 function Feed() {
 
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [posts, setPosts] = useState<any[]>([])
+  const [avatarMap, setAvatarMap] = useState<Record<string, string>>({})
   const [newPost, setNewPost] = useState('')
 
   const fetchPosts = async () => {
@@ -16,7 +17,6 @@ function Feed() {
       .select('blocked_id, blocker_id')
       .or(`blocker_id.eq.${user?.id},blocked_id.eq.${user?.id}`)
 
-    // Hem engellediğin hem de seni engelleyenlerin ID'leri
     const blockedIds = (blocksData ?? []).map((b: any) =>
       b.blocker_id === user?.id ? b.blocked_id : b.blocker_id
     )
@@ -26,7 +26,6 @@ function Feed() {
       .select('*')
       .order('created_at', { ascending: false })
 
-    // Engellenmiş kullanıcıların postlarını filtrele
     if (blockedIds.length > 0) {
       const { data: blockedProfiles } = await supabase
         .from('profiles')
@@ -42,6 +41,21 @@ function Feed() {
 
     const { data } = await query
     if (data) setPosts(data)
+
+    // Postlardaki tüm kullanıcı adları için avatar bilgisi çek
+    const usernames = [...new Set((data ?? []).map((p: any) => p.username))]
+    if (usernames.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .in('username', usernames)
+
+      const map: Record<string, string> = {}
+      ;(profiles ?? []).forEach((p: any) => {
+        if (p.avatar_url) map[p.username] = p.avatar_url
+      })
+      setAvatarMap(map)
+    }
   }
 
   const handlePost = async () => {
@@ -69,7 +83,11 @@ function Feed() {
 
       {/* Post atma alanı */}
       <div className="flex gap-3 p-4 border-b border-gray-800">
-        <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
+        {profile?.avatar_url ? (
+          <img src={profile.avatar_url} alt="avatar" className="w-10 h-10 rounded-full object-cover shrink-0" />
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
+        )}
         <div className="flex-1">
           <textarea
             placeholder="Ne düşünüyorsun?"
@@ -96,6 +114,7 @@ function Feed() {
           username={post.username}
           handle={`@${post.username}`}
           content={post.content}
+          avatarUrl={avatarMap[post.username]}
         />
       ))}
 

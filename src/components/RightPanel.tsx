@@ -24,7 +24,7 @@ function RightPanel() {
         // Kendisi hariç tüm kullanıcıları getir
         const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, username, full_name')
+            .select('id, username, full_name, avatar_url')
             .neq('id', user?.id)
             .limit(10)
 
@@ -80,7 +80,11 @@ function RightPanel() {
                                 className="flex items-center gap-3 cursor-pointer hover:bg-gray-700 p-2 rounded-xl transition"
                                 onClick={() => navigate(`/profil/${profile.username}`)}
                             >
-                                <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
+                                {profile.avatar_url ? (
+                                    <img src={profile.avatar_url} alt={profile.username} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                                ) : (
+                                    <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
+                                )}
                                 <div className="flex-1 min-w-0">
                                     <p className="text-white font-bold text-sm truncate">
                                         {profile.full_name || profile.username}

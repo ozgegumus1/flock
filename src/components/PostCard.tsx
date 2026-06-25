@@ -9,9 +9,10 @@ interface PostCardProps {
   handle: string
   content: string
   postId: string
+  avatarUrl?: string | null
 }
 
-function PostCard({ username, handle, content, postId }: PostCardProps) {
+function PostCard({ username, handle, content, postId, avatarUrl }: PostCardProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [liked, setLiked] = useState(false)
@@ -60,7 +61,19 @@ function PostCard({ username, handle, content, postId }: PostCardProps) {
   return (
     <div className="flex gap-3 p-4 border-b border-gray-800 hover:bg-gray-900/50 transition cursor-pointer">
 
-      <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt={username}
+          className="w-10 h-10 rounded-full object-cover shrink-0 cursor-pointer"
+          onClick={() => navigate(`/profil/${username}`)}
+        />
+      ) : (
+        <div
+          className="w-10 h-10 rounded-full bg-purple-500 shrink-0 cursor-pointer"
+          onClick={() => navigate(`/profil/${username}`)}
+        />
+      )}
 
       <div className="flex-1">
         <div className="flex items-center gap-2">

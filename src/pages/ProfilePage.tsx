@@ -212,14 +212,22 @@ function ProfilePage() {
         <div className="flex-1 min-h-screen border-x border-gray-800">
 
             {/* Kapak Fotoğrafı */}
-            <div className="h-48 bg-gradient-to-r from-purple-900 to-indigo-900" />
+            {profile.cover_url ? (
+                <img
+                    src={profile.cover_url}
+                    alt="kapak"
+                    className="h-48 w-full object-cover"
+                />
+            ) : (
+                <div className="h-48 bg-gradient-to-r from-purple-900 to-indigo-900" />
+            )}
 
             {/* Profil Bilgileri */}
             <div className="px-6 pb-4">
 
                 {/* Avatar */}
                 <div className="flex justify-between items-end -mt-12 mb-4">
-                    <div className="w-24 h-24 rounded-full bg-purple-500 border-4 border-gray-950" />
+                    {profile.avatar_url ? (<img src={profile.avatar_url} alt="avatar" className="w-24 h-24 rounded-full object-cover border-4 border-gray-950" />) : (<div className="w-24 h-24 rounded-full bg-purple-500 border-4 border-gray-950" />)}
 
                     {/* Butonlar */}
                     <div className="flex gap-2 mt-14">
@@ -319,6 +327,7 @@ function ProfilePage() {
                                     username={post.username}
                                     handle={`@${post.username}`}
                                     content={post.content}
+                                    avatarUrl={profile.avatar_url}
                                 />
                             ))
                         )}

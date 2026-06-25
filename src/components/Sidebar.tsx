@@ -5,7 +5,7 @@ import { Home, Compass, Bell, Mail, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 function Sidebar() {
-    const { user } = useAuth()
+    const { user, profile } = useAuth()
     const [unreadCount, setUnreadCount] = useState(0)
 
     useEffect(() => {
@@ -77,7 +77,11 @@ function Sidebar() {
             {/* Profil Alanı */}
             <div className="mt-auto">
            <Link to={`/profil/${user?.user_metadata?.username}`} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-800 transition cursor-pointer">
-    <div className="w-10 h-10 rounded-full bg-purple-500" />
+    {profile?.avatar_url ? (
+        <img src={profile.avatar_url} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
+    ) : (
+        <div className="w-10 h-10 rounded-full bg-purple-500" />
+    )}
     <div>
         <p className="text-white font-semibold text-sm">{user?.user_metadata?.username}</p>
         <p className="text-gray-400 text-xs">@{user?.user_metadata?.username}</p>
