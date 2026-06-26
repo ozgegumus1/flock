@@ -12,6 +12,9 @@ import NotificationsPage from "./pages/NotificationsPage";
 import KesfetPage from "./pages/KesfetPage";
 import MessagesPage from "./pages/MessagesPage";
 import ChatPage from "./pages/ChatPage";
+import SettingsPage from "./pages/SettingsPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
+import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 
 function App () {
   const {user, loading} = useAuth()
@@ -37,6 +40,9 @@ function App () {
         <Route path="/mesajlar" element={<MessagesPage />} />
         <Route path="/mesajlar/:username" element={<ChatPage />} />
         <Route path="/kesfet" element={<KesfetPage />} />
+        <Route path="/ayarlar" element={<SettingsPage />} />
+        <Route path="/ayarlar/sifre" element={<ChangePasswordPage />} />
+        <Route path="/ayarlar/bildirimler" element={<NotificationSettingsPage />} />
     </Routes>
     <div className="hidden md:block">
         <RightPanel />

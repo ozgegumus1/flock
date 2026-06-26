@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import PostCard from '../components/PostCard'
+import { Settings } from 'lucide-react'
 
 function ProfilePage() {
     const navigate = useNavigate()
@@ -232,11 +233,20 @@ function ProfilePage() {
                     {/* Butonlar */}
                     <div className="flex gap-2 mt-14">
                         {isOwnProfile ? (
-                            <button
-                                onClick={() => navigate('/profil-duzenle')}
-                                className="border border-gray-600 text-white text-sm font-bold px-4 py-2 rounded-full hover:bg-gray-800 transition">
-                                Profili Düzenle
-                            </button>
+                            <>
+                                <button
+                                    onClick={() => navigate('/ayarlar')}
+                                    className="border border-gray-600 text-white p-2 rounded-full hover:bg-gray-800 transition"
+                                    title="Ayarlar"
+                                >
+                                    <Settings size={18} />
+                                </button>
+                                <button
+                                    onClick={() => navigate('/profil-duzenle')}
+                                    className="border border-gray-600 text-white text-sm font-bold px-4 py-2 rounded-full hover:bg-gray-800 transition">
+                                    Profili Düzenle
+                                </button>
+                            </>
                         ) : (
                             <>
                                 <button
@@ -327,7 +337,10 @@ function ProfilePage() {
                                     username={post.username}
                                     handle={`@${post.username}`}
                                     content={post.content}
+                                    imageUrl={post.image_url}
                                     avatarUrl={profile.avatar_url}
+                                    createdAt={post.created_at}
+                                    onDelete={(deletedId) => setPosts((prev) => prev.filter((p) => p.id !== deletedId))}
                                 />
                             ))
                         )}

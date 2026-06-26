@@ -1,7 +1,7 @@
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { Link } from 'react-router-dom'
-import { Home, Compass, Bell, Mail, User } from 'lucide-react'
+import { Home, Compass, Bell, Mail, User, Settings } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 function Sidebar() {
@@ -71,6 +71,10 @@ function Sidebar() {
 
                <Link to={`/profil/${user?.user_metadata?.username}`} className='flex items-center gap-3 text-white px-3 py-3 rounded-xl hover:bg-gray-800 transition'>
                <User size={22} /> Profil
+               </Link>
+
+               <Link to="/ayarlar" className='flex items-center gap-3 text-white px-3 py-3 rounded-xl hover:bg-gray-800 transition'>
+               <Settings size={22} /> Ayarlar
                </Link>
             </nav>
 
