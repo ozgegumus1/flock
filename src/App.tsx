@@ -15,6 +15,10 @@ import ChatPage from "./pages/ChatPage";
 import SettingsPage from "./pages/SettingsPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
+import PrivacySettingsPage from "./pages/PrivacySettingsPage";
+import BlockedAccountsPage from "./pages/BlockedAccountsPage";
+import HelpCenterPage from "./pages/HelpCenterPage";
+import AboutPage from "./pages/AboutPage";
 
 function App () {
   const {user, loading} = useAuth()
@@ -43,6 +47,10 @@ function App () {
         <Route path="/ayarlar" element={<SettingsPage />} />
         <Route path="/ayarlar/sifre" element={<ChangePasswordPage />} />
         <Route path="/ayarlar/bildirimler" element={<NotificationSettingsPage />} />
+        <Route path="/ayarlar/gizlilik" element={<PrivacySettingsPage />} />
+        <Route path="/ayarlar/engellenenler" element={<BlockedAccountsPage />} />
+        <Route path="/ayarlar/yardim" element={<HelpCenterPage />} />
+        <Route path="/ayarlar/hakkinda" element={<AboutPage />} />
     </Routes>
     <div className="hidden md:block">
         <RightPanel />

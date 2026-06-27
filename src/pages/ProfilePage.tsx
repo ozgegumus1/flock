@@ -14,6 +14,7 @@ function ProfilePage() {
     const [followerCount, setFollowerCount] = useState(0)
     const [followingCount, setFollowingCount] = useState(0)
     const [isFollowing, setIsFollowing] = useState(false)
+    const [isPending, setIsPending] = useState(false)
     const [isBlocked, setIsBlocked] = useState(false)
     const [blockedByThem, setBlockedByThem] = useState(false)
     const [newPost, setNewPost] = useState('')
@@ -55,8 +56,24 @@ function ProfilePage() {
             .single()
         setBlockedByThem(!!blockedByData)
 
-        // Karşılıklı engel yoksa devam et
-        if (!blockedByData) {
+        const isMyOwnProfile = user?.user_metadata?.username === username
+
+        // Gizli hesap kontrolü: kendi profilim, takip ediyorsam veya açık hesapsa postları göster
+        let canSeePosts = isMyOwnProfile || !profileData?.is_private
+
+        if (!canSeePosts && profileData) {
+            const { data: acceptedFollow } = await supabase
+                .from('follows')
+                .select('*')
+                .eq('follower_id', user?.id)
+                .eq('following_id', profileData.id)
+                .eq('status', 'accepted')
+                .single()
+            canSeePosts = !!acceptedFollow
+        }
+
+        // Karşılıklı engel yoksa ve erişim varsa devam et
+        if (!blockedByData && canSeePosts) {
             const { data: postsData } = await supabase
                 .from('posts')
                 .select('*')
@@ -64,17 +81,21 @@ function ProfilePage() {
                 .order('created_at', { ascending: false })
 
             if (postsData) setPosts(postsData)
+        } else {
+            setPosts([])
         }
 
         const { count: followers } = await supabase
             .from('follows')
             .select('*', { count: 'exact' })
             .eq('following_id', profileData?.id)
+            .eq('status', 'accepted')
 
         const { count: following } = await supabase
             .from('follows')
             .select('*', { count: 'exact' })
             .eq('follower_id', profileData?.id)
+            .eq('status', 'accepted')
 
         setFollowerCount(followers ?? 0)
         setFollowingCount(following ?? 0)
@@ -86,7 +107,8 @@ function ProfilePage() {
             .eq('following_id', profileData?.id)
             .single()
 
-        setIsFollowing(!!followData)
+        setIsFollowing(followData?.status === 'accepted')
+        setIsPending(followData?.status === 'pending')
     }
 
     const handleBlock = async () => {
@@ -131,6 +153,7 @@ function ProfilePage() {
                 .from('follows')
                 .select('follower_id')
                 .eq('following_id', profile?.id)
+                .eq('status', 'accepted')
 
             if (data && data.length > 0) {
                 const ids = data.map((f: any) => f.follower_id)
@@ -145,6 +168,7 @@ function ProfilePage() {
                 .from('follows')
                 .select('following_id')
                 .eq('follower_id', profile?.id)
+                .eq('status', 'accepted')
 
             if (data && data.length > 0) {
                 const ids = data.map((f: any) => f.following_id)
@@ -165,7 +189,15 @@ function ProfilePage() {
     }
 
     const handleFollow = async () => {
-        if (isFollowing) {
+        if (isPending) {
+            // İstek geri çekme
+            await supabase
+                .from('follows')
+                .delete()
+                .eq('follower_id', user?.id)
+                .eq('following_id', profile?.id)
+            setIsPending(false)
+        } else if (isFollowing) {
             await supabase
                 .from('follows')
                 .delete()
@@ -173,10 +205,16 @@ function ProfilePage() {
                 .eq('following_id', profile?.id)
             setIsFollowing(false)
             setFollowerCount(followerCount - 1)
+        } else if (profile?.is_private) {
+            // Gizli hesap - takip isteği gönder
+            await supabase
+                .from('follows')
+                .insert({ follower_id: user?.id, following_id: profile?.id, status: 'pending' })
+            setIsPending(true)
         } else {
             await supabase
                 .from('follows')
-                .insert({ follower_id: user?.id, following_id: profile?.id })
+                .insert({ follower_id: user?.id, following_id: profile?.id, status: 'accepted' })
             setIsFollowing(true)
             setFollowerCount(followerCount + 1)
         }
@@ -262,8 +300,8 @@ function ProfilePage() {
                                 {!isBlocked && (
                                     <button
                                         onClick={handleFollow}
-                                        className={`text-sm font-bold px-4 py-2 rounded-full transition ${isFollowing ? 'border border-gray-600 text-white hover:bg-gray-800' : 'bg-white text-black hover:bg-gray-200'}`}>
-                                        {isFollowing ? 'Takipten Çık' : 'Takip Et'}
+                                        className={`text-sm font-bold px-4 py-2 rounded-full transition ${isFollowing || isPending ? 'border border-gray-600 text-white hover:bg-gray-800' : 'bg-white text-black hover:bg-gray-200'}`}>
+                                        {isPending ? 'İstek Gönderildi' : isFollowing ? 'Takipten Çık' : profile?.is_private ? 'Takip İsteği Gönder' : 'Takip Et'}
                                     </button>
                                 )}
                             </>
@@ -328,7 +366,17 @@ function ProfilePage() {
                     {/* Postlar */}
                     <div className="border-t border-gray-800">
                         {posts.length === 0 ? (
-                            <p className="text-gray-400 text-center py-8">Henüz post yok.</p>
+                            profile?.is_private && !isFollowing && !isOwnProfile ? (
+                                <div className="flex flex-col items-center gap-2 py-12 text-center">
+                                    <div className="w-14 h-14 rounded-full border-2 border-gray-700 flex items-center justify-center">
+                                        🔒
+                                    </div>
+                                    <p className="text-white font-bold">Bu hesap gizli</p>
+                                    <p className="text-gray-500 text-sm">Postları görmek için takip etmen gerekiyor.</p>
+                                </div>
+                            ) : (
+                                <p className="text-gray-400 text-center py-8">Henüz post yok.</p>
+                            )
                         ) : (
                             posts.map((post: any) => (
                                 <PostCard
