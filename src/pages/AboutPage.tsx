@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Github, Linkedin } from 'lucide-react'
+import { Code2, Linkedin } from 'lucide-react'
 
 function AboutPage() {
     const navigate = useNavigate()
@@ -44,7 +44,7 @@ function AboutPage() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-900 transition border border-gray-800"
                 >
-                    <Github size={18} className="text-gray-400" />
+                    <Code2 size={18} className="text-gray-400" />
                     <span className="text-white text-sm">GitHub</span>
                 </a>
                 <a
