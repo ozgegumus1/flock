@@ -160,13 +160,8 @@ function MessagesPage() {
         const confirmed = window.confirm('Bu kullanıcıyı engellemek istediğine emin misin? Birbirinizin içeriğini göremeyeceksiniz.')
         if (!confirmed) return
 
-        await supabase
-            .from('blocks')
-            .insert({ blocker_id: user?.id, blocked_id: profileId })
-
-        // Takip ilişkisini de kaldır
-        await supabase.from('follows').delete().eq('follower_id', user?.id).eq('following_id', profileId)
-        await supabase.from('follows').delete().eq('follower_id', profileId).eq('following_id', user?.id)
+        // RPC fonksiyonu RLS'i bypass ederek karşılıklı takip ilişkisini de siler
+        await supabase.rpc('block_user', { target_user_id: profileId })
 
         setConversations((prev) => prev.filter((c) => c.profile.id !== profileId))
     }

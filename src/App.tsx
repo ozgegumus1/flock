@@ -10,6 +10,7 @@ import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import NotificationsPage from "./pages/NotificationsPage";
 import KesfetPage from "./pages/KesfetPage";
+import HashtagPage from "./pages/HashtagPage";
 import MessagesPage from "./pages/MessagesPage";
 import ChatPage from "./pages/ChatPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -45,6 +46,7 @@ function App () {
         <Route path="/mesajlar" element={<MessagesPage />} />
         <Route path="/mesajlar/:username" element={<ChatPage />} />
         <Route path="/kesfet" element={<KesfetPage />} />
+        <Route path="/kesfet/hashtag/:tag" element={<HashtagPage />} />
         <Route path="/ayarlar" element={<SettingsPage />} />
         <Route path="/ayarlar/sifre" element={<ChangePasswordPage />} />
         <Route path="/ayarlar/bildirimler" element={<NotificationSettingsPage />} />

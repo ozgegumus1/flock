@@ -120,21 +120,9 @@ function ProfilePage() {
                 .eq('blocker_id', user?.id)
                 .eq('blocked_id', profile?.id)
         } else {
-            // Engelle — önce karşılıklı takipten çık
-            await supabase
-                .from('follows')
-                .delete()
-                .eq('follower_id', user?.id)
-                .eq('following_id', profile?.id)
-            await supabase
-                .from('follows')
-                .delete()
-                .eq('follower_id', profile?.id)
-                .eq('following_id', user?.id)
-
-            await supabase
-                .from('blocks')
-                .insert({ blocker_id: user?.id, blocked_id: profile?.id })
+            // Engelle - RPC fonksiyonu RLS'i bypass ederek
+            // karşılıklı takip ilişkisini de güvenli şekilde siler
+            await supabase.rpc('block_user', { target_user_id: profile?.id })
         }
 
         // Tek doğruluk kaynağı: verileri yeniden çek
