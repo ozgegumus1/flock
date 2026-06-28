@@ -119,9 +119,8 @@ function ProfilePage() {
                 .delete()
                 .eq('blocker_id', user?.id)
                 .eq('blocked_id', profile?.id)
-            setIsBlocked(false)
         } else {
-            // Engelle — önce takipten çık
+            // Engelle — önce karşılıklı takipten çık
             await supabase
                 .from('follows')
                 .delete()
@@ -136,11 +135,10 @@ function ProfilePage() {
             await supabase
                 .from('blocks')
                 .insert({ blocker_id: user?.id, blocked_id: profile?.id })
-
-            setIsBlocked(true)
-            setIsFollowing(false)
-            setFollowerCount((c) => Math.max(0, c - 1))
         }
+
+        // Tek doğruluk kaynağı: verileri yeniden çek
+        await fetchProfile()
     }
 
     const openModal = async (type: 'followers' | 'following') => {
@@ -196,28 +194,25 @@ function ProfilePage() {
                 .delete()
                 .eq('follower_id', user?.id)
                 .eq('following_id', profile?.id)
-            setIsPending(false)
         } else if (isFollowing) {
             await supabase
                 .from('follows')
                 .delete()
                 .eq('follower_id', user?.id)
                 .eq('following_id', profile?.id)
-            setIsFollowing(false)
-            setFollowerCount(followerCount - 1)
         } else if (profile?.is_private) {
             // Gizli hesap - takip isteği gönder
             await supabase
                 .from('follows')
                 .insert({ follower_id: user?.id, following_id: profile?.id, status: 'pending' })
-            setIsPending(true)
         } else {
             await supabase
                 .from('follows')
                 .insert({ follower_id: user?.id, following_id: profile?.id, status: 'accepted' })
-            setIsFollowing(true)
-            setFollowerCount(followerCount + 1)
         }
+
+        // Tek doğruluk kaynağı: verileri yeniden çek
+        await fetchProfile()
     }
 
     const handlePost = async () => {

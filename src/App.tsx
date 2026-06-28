@@ -19,6 +19,7 @@ import PrivacySettingsPage from "./pages/PrivacySettingsPage";
 import BlockedAccountsPage from "./pages/BlockedAccountsPage";
 import HelpCenterPage from "./pages/HelpCenterPage";
 import AboutPage from "./pages/AboutPage";
+import DeleteAccountPage from "./pages/DeleteAccountPage";
 
 function App () {
   const {user, loading} = useAuth()
@@ -51,6 +52,7 @@ function App () {
         <Route path="/ayarlar/engellenenler" element={<BlockedAccountsPage />} />
         <Route path="/ayarlar/yardim" element={<HelpCenterPage />} />
         <Route path="/ayarlar/hakkinda" element={<AboutPage />} />
+        <Route path="/ayarlar/hesabi-sil" element={<DeleteAccountPage />} />
     </Routes>
     <div className="hidden md:block">
         <RightPanel />
