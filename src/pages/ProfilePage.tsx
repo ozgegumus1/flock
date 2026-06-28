@@ -157,7 +157,7 @@ function ProfilePage() {
                 const ids = data.map((f: any) => f.follower_id)
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('username, full_name')
+                    .select('username, full_name, avatar_url')
                     .in('id', ids)
                 setModalUsers(profiles ?? [])
             }
@@ -172,7 +172,7 @@ function ProfilePage() {
                 const ids = data.map((f: any) => f.following_id)
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('username, full_name')
+                    .select('username, full_name, avatar_url')
                     .in('id', ids)
                 setModalUsers(profiles ?? [])
             }
@@ -430,7 +430,11 @@ function ProfilePage() {
                                             navigate(`/profil/${u.username}`)
                                         }}
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
+                                        {u.avatar_url ? (
+                                            <img src={u.avatar_url} alt={u.username} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
+                                        )}
                                         <div>
                                             <p className="text-white font-bold text-sm">{u.full_name || u.username}</p>
                                             <p className="text-gray-400 text-xs">@{u.username}</p>
