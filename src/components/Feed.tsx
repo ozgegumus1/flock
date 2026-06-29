@@ -2,6 +2,7 @@ import { useAuth } from '../context/AuthContext'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase'
 import PostCard from "./PostCard"
+import StoriesBar from "./StoriesBar"
 import { Image, X } from 'lucide-react'
 
 async function convertIfHeic(file: File): Promise<File> {
@@ -161,6 +162,8 @@ function Feed() {
       <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800">
         <h1 className="text-white font-bold text-xl">Anasayfa</h1>
       </div>
+
+      <StoriesBar />
 
       {/* Post atma alanı */}
       <div className="flex gap-3 p-4 border-b border-gray-800">
