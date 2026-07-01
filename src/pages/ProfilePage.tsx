@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import PostCard from '../components/PostCard'
+import { StoryViewer } from '../components/StoryViewer'
 import { Settings } from 'lucide-react'
 
 function ProfilePage() {
@@ -18,6 +19,10 @@ function ProfilePage() {
     const [isBlocked, setIsBlocked] = useState(false)
     const [blockedByThem, setBlockedByThem] = useState(false)
     const [newPost, setNewPost] = useState('')
+
+    // Hikaye
+    const [activeStories, setActiveStories] = useState<any[]>([])
+    const [showStoryViewer, setShowStoryViewer] = useState(false)
 
     // Modal state
     const [modalType, setModalType] = useState<'followers' | 'following' | null>(null)
@@ -38,6 +43,18 @@ function ProfilePage() {
             .single()
 
         setProfile(profileData)
+
+        // Aktif hikayeleri çek (süresi dolmamış)
+        if (profileData) {
+            const { data: stories } = await supabase
+                .from('stories')
+                .select('*')
+                .eq('user_id', profileData.id)
+                .gt('expires_at', new Date().toISOString())
+                .order('created_at', { ascending: true })
+
+            setActiveStories(stories ?? [])
+        }
 
         // Engelleme kontrolleri
         const { data: blockData } = await supabase
@@ -109,6 +126,17 @@ function ProfilePage() {
 
         setIsFollowing(followData?.status === 'accepted')
         setIsPending(followData?.status === 'pending')
+    }
+
+    const handleAvatarClick = () => {
+        if (activeStories.length > 0) {
+            setShowStoryViewer(true)
+        }
+    }
+
+    const closeStoryViewer = () => {
+        setShowStoryViewer(false)
+        fetchProfile()
     }
 
     const handleBlock = async () => {
@@ -230,6 +258,8 @@ function ProfilePage() {
         </div>
     )
 
+    const hasActiveStories = activeStories.length > 0
+
     return (
         <div className="flex-1 min-h-screen border-x border-gray-800">
 
@@ -249,7 +279,17 @@ function ProfilePage() {
 
                 {/* Avatar */}
                 <div className="flex justify-between items-end -mt-12 mb-4">
-                    {profile.avatar_url ? (<img src={profile.avatar_url} alt="avatar" className="w-24 h-24 rounded-full object-cover border-4 border-gray-950" />) : (<div className="w-24 h-24 rounded-full bg-purple-500 border-4 border-gray-950" />)}
+                    <button
+                        onClick={handleAvatarClick}
+                        disabled={!hasActiveStories}
+                        className={`rounded-full ${hasActiveStories ? 'p-[3px] bg-gradient-to-tr from-purple-600 to-pink-500 cursor-pointer' : ''}`}
+                    >
+                        {profile.avatar_url ? (
+                            <img src={profile.avatar_url} alt="avatar" className="w-24 h-24 rounded-full object-cover border-4 border-gray-950" />
+                        ) : (
+                            <div className="w-24 h-24 rounded-full bg-purple-500 border-4 border-gray-950" />
+                        )}
+                    </button>
 
                     {/* Butonlar */}
                     <div className="flex gap-2 mt-14">
@@ -433,6 +473,21 @@ function ProfilePage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Hikaye Görüntüleyici */}
+            {showStoryViewer && hasActiveStories && (
+                <StoryViewer
+                    groups={[{
+                        userId: profile.id,
+                        username: profile.username,
+                        avatarUrl: profile.avatar_url,
+                        stories: activeStories,
+                        hasUnseen: false,
+                    }]}
+                    startGroupIndex={0}
+                    onClose={closeStoryViewer}
+                />
             )}
 
         </div>

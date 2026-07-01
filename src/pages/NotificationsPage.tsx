@@ -14,6 +14,7 @@ function NotificationsPage() {
     useEffect(() => {
         fetchNotifications()
         fetchFollowRequests()
+        markAllAsRead()
     }, [])
 
     const fetchNotifications = async () => {
@@ -24,6 +25,14 @@ function NotificationsPage() {
             .order('created_at', { ascending: false })
 
         if (data) setNotifications(data)
+    }
+
+    const markAllAsRead = async () => {
+        await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('user_id', user?.id)
+            .eq('is_read', false)
     }
 
     const fetchFollowRequests = async () => {
@@ -141,13 +150,15 @@ function NotificationsPage() {
                 notifications.map((notification: any) => (
                     <div
                         key={notification.id}
-                        className="flex items-center gap-3 p-4 border-b border-gray-800 hover:bg-gray-900/50 transition cursor-pointer"
+                        className={`flex items-center gap-3 p-4 border-b border-gray-800 hover:bg-gray-900/50 transition cursor-pointer ${!notification.is_read ? 'bg-purple-950/10' : ''}`}
                         onClick={() => navigate(`/profil/${notification.actor?.username}`)}
                     >
                         <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
                         <p className="text-white text-sm">
                             {notification.type === 'like' && `❤️ ${notification.actor?.username} postunu beğendi.`}
+                            {notification.type === 'comment' && `💬 ${notification.actor?.username} postuna yorum yaptı.`}
                             {notification.type === 'follow' && `👤 ${notification.actor?.username} seni takip etti.`}
+                            {notification.type === 'follow_accepted' && `✅ ${notification.actor?.username} takip isteğini kabul etti.`}
                         </p>
                     </div>
                 ))

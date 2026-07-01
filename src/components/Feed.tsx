@@ -1,9 +1,11 @@
 import { useAuth } from '../context/AuthContext'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { supabase } from '../supabase'
 import PostCard from "./PostCard"
 import StoriesBar from "./StoriesBar"
 import { Image, X } from 'lucide-react'
+
+const PAGE_SIZE = 10
 
 async function convertIfHeic(file: File): Promise<File> {
   const isHeic =
@@ -29,12 +31,61 @@ async function convertIfHeic(file: File): Promise<File> {
   )
 }
 
+// Fotoğrafı yüklemeden önce tarayıcıda küçültür - kalite kaybı gözle görülmez,
+// ama dosya boyutu ve yükleme/indirme süresi ciddi şekilde azalır.
+async function resizeImage(file: File, maxDimension: number, quality = 0.82): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+
+    img.onload = () => {
+      let { width, height } = img
+
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width)
+          width = maxDimension
+        } else {
+          width = Math.round((width * maxDimension) / height)
+          height = maxDimension
+        }
+      }
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx?.drawImage(img, 0, 0, width, height)
+
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(url)
+          if (!blob) { resolve(file); return }
+          resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
+        },
+        'image/jpeg',
+        quality
+      )
+    }
+
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+    img.src = url
+  })
+}
+
 function Feed() {
 
   const { user, profile } = useAuth()
   const [posts, setPosts] = useState<any[]>([])
   const [avatarMap, setAvatarMap] = useState<Record<string, string>>({})
   const [newPost, setNewPost] = useState('')
+  const [blockedUsernames, setBlockedUsernames] = useState<string[]>([])
+
+  // Sayfalama
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   // Resim seçme
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -43,8 +94,24 @@ function Feed() {
   const [posting, setPosting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const fetchPosts = async () => {
-    // Engellenmiş kullanıcıların ID'lerini al
+  const fetchAvatarsFor = async (usernames: string[]) => {
+    if (usernames.length === 0) return
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('username, avatar_url')
+      .in('username', usernames)
+
+    setAvatarMap((prev) => {
+      const map = { ...prev }
+      ;(profiles ?? []).forEach((p: any) => {
+        if (p.avatar_url) map[p.username] = p.avatar_url
+      })
+      return map
+    })
+  }
+
+  // İlk yükleme: engellenmiş kullanıcıları belirle + ilk sayfayı çek
+  const initFeed = async () => {
     const { data: blocksData } = await supabase
       .from('blocks')
       .select('blocked_id, blocker_id')
@@ -54,41 +121,57 @@ function Feed() {
       b.blocker_id === user?.id ? b.blocked_id : b.blocker_id
     )
 
-    let query = supabase
-      .from('posts')
-      .select('*')
-      .order('created_at', { ascending: false })
-
+    let usernames: string[] = []
     if (blockedIds.length > 0) {
       const { data: blockedProfiles } = await supabase
         .from('profiles')
         .select('username')
         .in('id', blockedIds)
+      usernames = (blockedProfiles ?? []).map((p: any) => p.username)
+    }
 
-      const blockedUsernames = (blockedProfiles ?? []).map((p: any) => p.username)
+    setBlockedUsernames(usernames)
+    await loadPage(0, usernames)
+  }
 
-      if (blockedUsernames.length > 0) {
-        query = query.not('username', 'in', `(${blockedUsernames.map((u: string) => `"${u}"`).join(',')})`)
-      }
+  const loadPage = async (pageNum: number, blockedList: string[]) => {
+    if (pageNum === 0) setLoadingMore(false)
+    else setLoadingMore(true)
+
+    const from = pageNum * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+
+    let query = supabase
+      .from('posts')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, to)
+
+    if (blockedList.length > 0) {
+      query = query.not('username', 'in', `(${blockedList.map((u: string) => `"${u}"`).join(',')})`)
     }
 
     const { data } = await query
-    if (data) setPosts(data)
 
-    // Postlardaki tüm kullanıcı adları için avatar bilgisi çek
-    const usernames = [...new Set((data ?? []).map((p: any) => p.username))]
-    if (usernames.length > 0) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('username, avatar_url')
-        .in('username', usernames)
+    const newPosts = data ?? []
 
-      const map: Record<string, string> = {}
-      ;(profiles ?? []).forEach((p: any) => {
-        if (p.avatar_url) map[p.username] = p.avatar_url
-      })
-      setAvatarMap(map)
-    }
+    setPosts((prev) => (pageNum === 0 ? newPosts : [...prev, ...newPosts]))
+    setHasMore(newPosts.length === PAGE_SIZE)
+    setPage(pageNum)
+    setLoadingMore(false)
+
+    const usernames = [...new Set(newPosts.map((p: any) => p.username))]
+    fetchAvatarsFor(usernames)
+  }
+
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore) return
+    loadPage(page + 1, blockedUsernames)
+  }, [page, hasMore, loadingMore, blockedUsernames])
+
+  // Yeniden paylaşımdan sonra feed'i baştan yenile
+  const refreshFeed = () => {
+    loadPage(0, blockedUsernames)
   }
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,7 +180,8 @@ function Feed() {
 
     setConverting(true)
     try {
-      const finalFile = await convertIfHeic(file)
+      const heicConverted = await convertIfHeic(file)
+      const finalFile = await resizeImage(heicConverted, 1600)
       setImageFile(finalFile)
       setImagePreview(URL.createObjectURL(finalFile))
     } catch (err) {
@@ -148,12 +232,28 @@ function Feed() {
     setNewPost('')
     handleRemoveImage()
     setPosting(false)
-    fetchPosts()
+    refreshFeed()
   }
 
   useEffect(() => {
-    fetchPosts()
+    initFeed()
   }, [])
+
+  // Sentinel görünür olduğunda otomatik sonraki sayfayı yükle
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore()
+      },
+      { rootMargin: '400px' }
+    )
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [loadMore])
 
   return (
     <div className="flex-1 min-h-screen border-x border-gray-800">
@@ -240,6 +340,15 @@ function Feed() {
           onDelete={(deletedId) => setPosts((prev) => prev.filter((p) => p.id !== deletedId))}
         />
       ))}
+
+      {/* Kaydırınca otomatik yükleme tetikleyicisi */}
+      {hasMore && (
+        <div ref={sentinelRef} className="py-6 flex justify-center">
+          {loadingMore && (
+            <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+          )}
+        </div>
+      )}
 
     </div>
   )

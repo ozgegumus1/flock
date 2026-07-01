@@ -1,5 +1,5 @@
+import { lazy, Suspense } from 'react'
 import BottomNav from "./components/BottomNav";
-import EditProfilePage from "./pages/EditProfilePage";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
@@ -7,20 +7,30 @@ import RegisterPage from "./pages/RegisterPage";
 import Sidebar from "./components/Sidebar";
 import RightPanel from "./components/RightPanel";
 import HomePage from "./pages/HomePage";
-import ProfilePage from "./pages/ProfilePage";
-import NotificationsPage from "./pages/NotificationsPage";
-import KesfetPage from "./pages/KesfetPage";
-import HashtagPage from "./pages/HashtagPage";
-import MessagesPage from "./pages/MessagesPage";
-import ChatPage from "./pages/ChatPage";
-import SettingsPage from "./pages/SettingsPage";
-import ChangePasswordPage from "./pages/ChangePasswordPage";
-import NotificationSettingsPage from "./pages/NotificationSettingsPage";
-import PrivacySettingsPage from "./pages/PrivacySettingsPage";
-import BlockedAccountsPage from "./pages/BlockedAccountsPage";
-import HelpCenterPage from "./pages/HelpCenterPage";
-import AboutPage from "./pages/AboutPage";
-import DeleteAccountPage from "./pages/DeleteAccountPage";
+
+const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const KesfetPage = lazy(() => import("./pages/KesfetPage"));
+const HashtagPage = lazy(() => import("./pages/HashtagPage"));
+const MessagesPage = lazy(() => import("./pages/MessagesPage"));
+const ChatPage = lazy(() => import("./pages/ChatPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const ChangePasswordPage = lazy(() => import("./pages/ChangePasswordPage"));
+const NotificationSettingsPage = lazy(() => import("./pages/NotificationSettingsPage"));
+const PrivacySettingsPage = lazy(() => import("./pages/PrivacySettingsPage"));
+const BlockedAccountsPage = lazy(() => import("./pages/BlockedAccountsPage"));
+const HelpCenterPage = lazy(() => import("./pages/HelpCenterPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const DeleteAccountPage = lazy(() => import("./pages/DeleteAccountPage"));
+
+function PageLoader() {
+  return (
+    <div className="flex-1 min-h-screen flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+}
 
 function App () {
   const {user, loading} = useAuth()
@@ -38,24 +48,26 @@ function App () {
     <div className="hidden md:block">
         <Sidebar />
     </div>
-    <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/profil/:username" element={<ProfilePage />} />
-        <Route path="/profil-duzenle" element={<EditProfilePage />} />
-        <Route path="/bildirimler" element={<NotificationsPage />} />
-        <Route path="/mesajlar" element={<MessagesPage />} />
-        <Route path="/mesajlar/:username" element={<ChatPage />} />
-        <Route path="/kesfet" element={<KesfetPage />} />
-        <Route path="/kesfet/hashtag/:tag" element={<HashtagPage />} />
-        <Route path="/ayarlar" element={<SettingsPage />} />
-        <Route path="/ayarlar/sifre" element={<ChangePasswordPage />} />
-        <Route path="/ayarlar/bildirimler" element={<NotificationSettingsPage />} />
-        <Route path="/ayarlar/gizlilik" element={<PrivacySettingsPage />} />
-        <Route path="/ayarlar/engellenenler" element={<BlockedAccountsPage />} />
-        <Route path="/ayarlar/yardim" element={<HelpCenterPage />} />
-        <Route path="/ayarlar/hakkinda" element={<AboutPage />} />
-        <Route path="/ayarlar/hesabi-sil" element={<DeleteAccountPage />} />
-    </Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/profil/:username" element={<ProfilePage />} />
+          <Route path="/profil-duzenle" element={<EditProfilePage />} />
+          <Route path="/bildirimler" element={<NotificationsPage />} />
+          <Route path="/mesajlar" element={<MessagesPage />} />
+          <Route path="/mesajlar/:username" element={<ChatPage />} />
+          <Route path="/kesfet" element={<KesfetPage />} />
+          <Route path="/kesfet/hashtag/:tag" element={<HashtagPage />} />
+          <Route path="/ayarlar" element={<SettingsPage />} />
+          <Route path="/ayarlar/sifre" element={<ChangePasswordPage />} />
+          <Route path="/ayarlar/bildirimler" element={<NotificationSettingsPage />} />
+          <Route path="/ayarlar/gizlilik" element={<PrivacySettingsPage />} />
+          <Route path="/ayarlar/engellenenler" element={<BlockedAccountsPage />} />
+          <Route path="/ayarlar/yardim" element={<HelpCenterPage />} />
+          <Route path="/ayarlar/hakkinda" element={<AboutPage />} />
+          <Route path="/ayarlar/hesabi-sil" element={<DeleteAccountPage />} />
+      </Routes>
+    </Suspense>
     <div className="hidden md:block">
         <RightPanel />
     </div>

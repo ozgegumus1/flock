@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
-import { X, Image as ImageIcon } from 'lucide-react'
+import { X, Type, Image as ImageIcon } from 'lucide-react'
 
 async function convertIfHeic(file: File): Promise<File> {
     const isHeic =
@@ -18,6 +18,48 @@ async function convertIfHeic(file: File): Promise<File> {
     return new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' })
 }
 
+async function resizeImage(file: File, maxDimension: number, quality = 0.85): Promise<File> {
+    return new Promise((resolve) => {
+        const img = new Image()
+        const url = URL.createObjectURL(file)
+
+        img.onload = () => {
+            let { width, height } = img
+
+            if (width > maxDimension || height > maxDimension) {
+                if (width > height) {
+                    height = Math.round((height * maxDimension) / width)
+                    width = maxDimension
+                } else {
+                    width = Math.round((width * maxDimension) / height)
+                    height = maxDimension
+                }
+            }
+
+            const canvas = document.createElement('canvas')
+            canvas.width = width
+            canvas.height = height
+            const ctx = canvas.getContext('2d')
+            ctx?.drawImage(img, 0, 0, width, height)
+
+            canvas.toBlob(
+                (blob) => {
+                    URL.revokeObjectURL(url)
+                    if (!blob) { resolve(file); return }
+                    resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
+                },
+                'image/jpeg',
+                quality
+            )
+        }
+
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+        img.src = url
+    })
+}
+
+const TEXT_COLORS = ['#ffffff', '#ec4899', '#a855f7', '#3b82f6', '#22c55e', '#eab308', '#000000']
+
 interface CreateStoryModalProps {
     onClose: () => void
     onCreated: () => void
@@ -27,10 +69,17 @@ export function CreateStoryModal({ onClose, onCreated }: CreateStoryModalProps) 
     const { user } = useAuth()
     const [file, setFile] = useState<File | null>(null)
     const [preview, setPreview] = useState<string | null>(null)
-    const [caption, setCaption] = useState('')
     const [converting, setConverting] = useState(false)
     const [posting, setPosting] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
+
+    // Metin ekleme
+    const [showTextInput, setShowTextInput] = useState(false)
+    const [caption, setCaption] = useState('')
+    const [textColor, setTextColor] = useState('#ffffff')
+    const [textPos, setTextPos] = useState({ x: 50, y: 50 }) // yüzde
+    const draggingRef = useRef(false)
+    const stageRef = useRef<HTMLDivElement>(null)
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const selected = e.target.files?.[0]
@@ -38,7 +87,8 @@ export function CreateStoryModal({ onClose, onCreated }: CreateStoryModalProps) 
 
         setConverting(true)
         try {
-            const finalFile = await convertIfHeic(selected)
+            const heicConverted = await convertIfHeic(selected)
+            const finalFile = await resizeImage(heicConverted, 1200)
             setFile(finalFile)
             setPreview(URL.createObjectURL(finalFile))
         } catch (err) {
@@ -46,6 +96,33 @@ export function CreateStoryModal({ onClose, onCreated }: CreateStoryModalProps) 
         } finally {
             setConverting(false)
         }
+    }
+
+    const getRelativePos = (clientX: number, clientY: number) => {
+        const stage = stageRef.current
+        if (!stage) return { x: 50, y: 50 }
+        const rect = stage.getBoundingClientRect()
+        const x = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100))
+        const y = Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100))
+        return { x, y }
+    }
+
+    const handleDragStart = () => { draggingRef.current = true }
+    const handleDragEnd = () => { draggingRef.current = false }
+
+    const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!draggingRef.current) return
+        if ('touches' in e) {
+            const t = e.touches[0]
+            setTextPos(getRelativePos(t.clientX, t.clientY))
+        } else {
+            setTextPos(getRelativePos(e.clientX, e.clientY))
+        }
+    }
+
+    const cycleColor = () => {
+        const idx = TEXT_COLORS.indexOf(textColor)
+        setTextColor(TEXT_COLORS[(idx + 1) % TEXT_COLORS.length])
     }
 
     const handleShare = async () => {
@@ -75,71 +152,141 @@ export function CreateStoryModal({ onClose, onCreated }: CreateStoryModalProps) 
         onCreated()
     }
 
-    return (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-            <div className="bg-gray-900 rounded-2xl w-full max-w-sm overflow-hidden">
-                {/* Başlık */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-                    <h2 className="text-white font-bold">Hikaye Paylaş</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white transition">
-                        <X size={20} />
+    // Henüz fotoğraf seçilmediyse: tam ekran seçim ekranı
+    if (!preview) {
+        return (
+            <div className="fixed inset-0 bg-black z-50 flex flex-col">
+                <div className="flex items-center justify-between px-4 py-4">
+                    <button onClick={onClose} className="text-white p-2 rounded-full hover:bg-white/10 transition">
+                        <X size={24} />
+                    </button>
+                    <h2 className="text-white font-bold">Hikaye Oluştur</h2>
+                    <div className="w-9" />
+                </div>
+
+                <div className="flex-1 flex flex-col items-center justify-center gap-6 px-8">
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={converting}
+                        className="w-full max-w-xs aspect-[9/16] rounded-3xl border-2 border-dashed border-gray-700 flex flex-col items-center justify-center gap-3 hover:border-purple-500 transition disabled:opacity-50 bg-gray-900/40"
+                    >
+                        <div className="w-16 h-16 rounded-full bg-purple-600/20 flex items-center justify-center">
+                            <ImageIcon size={28} className="text-purple-400" />
+                        </div>
+                        <span className="text-gray-300 text-sm font-medium">
+                            {converting ? 'İşleniyor...' : 'Galeriden fotoğraf seç'}
+                        </span>
                     </button>
                 </div>
 
-                <div className="p-4">
-                    {preview ? (
-                        <div className="relative rounded-xl overflow-hidden bg-black aspect-[9/16] max-h-[400px] mx-auto">
-                            <img src={preview} alt="önizleme" className="w-full h-full object-contain" />
-                        </div>
-                    ) : (
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={converting}
-                            className="w-full aspect-[9/16] max-h-[400px] rounded-xl border-2 border-dashed border-gray-700 flex flex-col items-center justify-center gap-2 hover:border-purple-500 transition mx-auto disabled:opacity-50"
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.heic,.heif"
+                    className="hidden"
+                    onChange={handleFileChange}
+                />
+            </div>
+        )
+    }
+
+    // Fotoğraf seçildikten sonra: tam ekran düzenleme ekranı
+    return (
+        <div className="fixed inset-0 bg-black z-50 flex flex-col select-none">
+
+            {/* Üst bar */}
+            <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-4 z-30">
+                <button
+                    onClick={() => { setFile(null); setPreview(null); setCaption(''); setShowTextInput(false) }}
+                    className="text-white p-2 rounded-full bg-black/40 hover:bg-black/60 transition"
+                >
+                    <X size={22} />
+                </button>
+
+                <button
+                    onClick={() => setShowTextInput((s) => !s)}
+                    className={`p-2.5 rounded-full transition ${showTextInput ? 'bg-white text-black' : 'bg-black/40 text-white hover:bg-black/60'}`}
+                >
+                    <Type size={20} />
+                </button>
+            </div>
+
+            {/* Görsel + sürüklenebilir metin */}
+            <div
+                ref={stageRef}
+                className="relative flex-1 flex items-center justify-center bg-black overflow-hidden"
+                onMouseMove={handleDragMove}
+                onMouseUp={handleDragEnd}
+                onMouseLeave={handleDragEnd}
+                onTouchMove={handleDragMove}
+                onTouchEnd={handleDragEnd}
+            >
+                <img src={preview} alt="önizleme" className="w-full h-full object-contain" />
+
+                {caption && (
+                    <div
+                        onMouseDown={handleDragStart}
+                        onTouchStart={handleDragStart}
+                        className="absolute cursor-move px-3 py-1"
+                        style={{
+                            left: `${textPos.x}%`,
+                            top: `${textPos.y}%`,
+                            transform: 'translate(-50%, -50%)',
+                            touchAction: 'none',
+                        }}
+                    >
+                        <p
+                            className="text-2xl font-bold text-center break-words max-w-[260px]"
+                            style={{ color: textColor, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
+                            onClick={cycleColor}
                         >
-                            <ImageIcon size={32} className="text-gray-500" />
-                            <span className="text-gray-400 text-sm">
-                                {converting ? 'İşleniyor...' : 'Fotoğraf seç'}
-                            </span>
-                        </button>
-                    )}
-
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*,.heic,.heif"
-                        className="hidden"
-                        onChange={handleFileChange}
-                    />
-
-                    {preview && (
-                        <input
-                            type="text"
-                            value={caption}
-                            onChange={(e) => setCaption(e.target.value)}
-                            placeholder="Bir şey yaz... (opsiyonel)"
-                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 mt-3 text-white text-sm placeholder-gray-500 outline-none focus:border-purple-500 transition"
-                        />
-                    )}
-
-                    <div className="flex gap-2 mt-4">
-                        {preview && (
-                            <button
-                                onClick={() => { setFile(null); setPreview(null) }}
-                                className="flex-1 border border-gray-700 text-white font-bold py-2.5 rounded-xl hover:bg-gray-800 transition"
-                            >
-                                Değiştir
-                            </button>
-                        )}
-                        <button
-                            onClick={handleShare}
-                            disabled={!file || posting || converting}
-                            className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition"
-                        >
-                            {posting ? 'Paylaşılıyor...' : 'Paylaş'}
-                        </button>
+                            {caption}
+                        </p>
                     </div>
+                )}
+            </div>
+
+            {/* Metin girme paneli */}
+            {showTextInput && (
+                <div className="absolute inset-0 bg-black/70 z-40 flex flex-col items-center justify-center px-8 gap-4">
+                    <input
+                        autoFocus
+                        type="text"
+                        value={caption}
+                        onChange={(e) => setCaption(e.target.value)}
+                        placeholder="Bir şeyler yaz..."
+                        maxLength={80}
+                        className="w-full max-w-sm bg-transparent text-center text-2xl font-bold outline-none placeholder-white/40"
+                        style={{ color: textColor }}
+                    />
+                    <div className="flex gap-2">
+                        {TEXT_COLORS.map((c) => (
+                            <button
+                                key={c}
+                                onClick={() => setTextColor(c)}
+                                className={`w-7 h-7 rounded-full border-2 transition ${textColor === c ? 'border-white scale-110' : 'border-white/30'}`}
+                                style={{ backgroundColor: c }}
+                            />
+                        ))}
+                    </div>
+                    <button
+                        onClick={() => setShowTextInput(false)}
+                        className="mt-4 bg-white text-black text-sm font-bold px-6 py-2 rounded-full"
+                    >
+                        Tamam
+                    </button>
                 </div>
+            )}
+
+            {/* Alt bar - paylaş */}
+            <div className="absolute bottom-0 left-0 right-0 flex items-center justify-end px-4 py-5 z-30">
+                <button
+                    onClick={handleShare}
+                    disabled={posting}
+                    className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-full transition shadow-lg"
+                >
+                    {posting ? 'Paylaşılıyor...' : 'Hikayeni Paylaş'}
+                </button>
             </div>
         </div>
     )

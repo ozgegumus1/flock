@@ -20,6 +20,21 @@ interface StoryViewerProps {
 
 const STORY_DURATION = 5000 // ms
 
+function formatStoryTime(dateString?: string): string {
+    if (!dateString) return ''
+
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffSec = Math.floor(diffMs / 1000)
+    const diffMin = Math.floor(diffSec / 60)
+    const diffHour = Math.floor(diffMin / 60)
+
+    if (diffSec < 60) return 'az önce'
+    if (diffMin < 60) return `${diffMin}dk`
+    return `${diffHour}sa`
+}
+
 export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerProps) {
     const { user } = useAuth()
     const navigate = useNavigate()
@@ -140,6 +155,9 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
                             onClick={() => { onClose(); navigate(`/profil/${currentGroup.username}`) }}
                         >
                             {currentGroup.username}
+                        </span>
+                        <span className="text-white/70 text-sm">
+                            {formatStoryTime(currentStory.created_at)}
                         </span>
                     </div>
                     <div className="flex items-center gap-1">
