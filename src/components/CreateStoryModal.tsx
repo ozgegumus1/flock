@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { X, Type, Image as ImageIcon } from 'lucide-react'
 
 async function convertIfHeic(file: File): Promise<File> {
@@ -20,7 +21,7 @@ async function convertIfHeic(file: File): Promise<File> {
 
 async function resizeImage(file: File, maxDimension: number, quality = 0.85): Promise<File> {
     return new Promise((resolve) => {
-        const img = new Image()
+        const img = new window.Image()
         const url = URL.createObjectURL(file)
 
         img.onload = () => {
@@ -67,17 +68,17 @@ interface CreateStoryModalProps {
 
 export function CreateStoryModal({ onClose, onCreated }: CreateStoryModalProps) {
     const { user } = useAuth()
+    const { showToast } = useToast()
     const [file, setFile] = useState<File | null>(null)
     const [preview, setPreview] = useState<string | null>(null)
     const [converting, setConverting] = useState(false)
     const [posting, setPosting] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
-    // Metin ekleme
     const [showTextInput, setShowTextInput] = useState(false)
     const [caption, setCaption] = useState('')
     const [textColor, setTextColor] = useState('#ffffff')
-    const [textPos, setTextPos] = useState({ x: 50, y: 50 }) // yüzde
+    const [textPos, setTextPos] = useState({ x: 50, y: 50 })
     const draggingRef = useRef(false)
     const stageRef = useRef<HTMLDivElement>(null)
 
@@ -92,7 +93,7 @@ export function CreateStoryModal({ onClose, onCreated }: CreateStoryModalProps) 
             setFile(finalFile)
             setPreview(URL.createObjectURL(finalFile))
         } catch (err) {
-            alert('Bu fotoğraf yüklenemedi. Lütfen JPEG veya PNG formatında bir fotoğraf seç.')
+            showToast('Bu fotoğraf yüklenemedi. Lütfen JPEG veya PNG formatında bir fotoğraf seç.', 'error')
         } finally {
             setConverting(false)
         }
@@ -146,13 +147,16 @@ export function CreateStoryModal({ onClose, onCreated }: CreateStoryModalProps) 
                 media_type: 'image',
                 caption: caption.trim() || null,
             })
+
+            showToast('Hikayen paylaşıldı!', 'success')
+        } else {
+            showToast('Hikaye paylaşılamadı, tekrar dene.', 'error')
         }
 
         setPosting(false)
         onCreated()
     }
 
-    // Henüz fotoğraf seçilmediyse: tam ekran seçim ekranı
     if (!preview) {
         return (
             <div className="fixed inset-0 bg-black z-50 flex flex-col">
@@ -190,11 +194,9 @@ export function CreateStoryModal({ onClose, onCreated }: CreateStoryModalProps) 
         )
     }
 
-    // Fotoğraf seçildikten sonra: tam ekran düzenleme ekranı
     return (
         <div className="fixed inset-0 bg-black z-50 flex flex-col select-none">
 
-            {/* Üst bar */}
             <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-4 z-30">
                 <button
                     onClick={() => { setFile(null); setPreview(null); setCaption(''); setShowTextInput(false) }}
@@ -211,7 +213,6 @@ export function CreateStoryModal({ onClose, onCreated }: CreateStoryModalProps) 
                 </button>
             </div>
 
-            {/* Görsel + sürüklenebilir metin */}
             <div
                 ref={stageRef}
                 className="relative flex-1 flex items-center justify-center bg-black overflow-hidden"
@@ -246,7 +247,6 @@ export function CreateStoryModal({ onClose, onCreated }: CreateStoryModalProps) 
                 )}
             </div>
 
-            {/* Metin girme paneli */}
             {showTextInput && (
                 <div className="absolute inset-0 bg-black/70 z-40 flex flex-col items-center justify-center px-8 gap-4">
                     <input
@@ -278,7 +278,6 @@ export function CreateStoryModal({ onClose, onCreated }: CreateStoryModalProps) 
                 </div>
             )}
 
-            {/* Alt bar - paylaş */}
             <div className="absolute bottom-0 left-0 right-0 flex items-center justify-end px-4 py-5 z-30">
                 <button
                     onClick={handleShare}

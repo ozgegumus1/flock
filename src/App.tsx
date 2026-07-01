@@ -24,6 +24,19 @@ const HelpCenterPage = lazy(() => import("./pages/HelpCenterPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const DeleteAccountPage = lazy(() => import("./pages/DeleteAccountPage"));
 
+function FullScreenLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-950">
+      <div className="flex flex-col items-center gap-3">
+        <div className="text-purple-500 text-4xl font-bold animate-pulse">
+          Flock
+        </div>
+        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    </div>
+  )
+}
+
 function PageLoader() {
   return (
     <div className="flex-1 min-h-screen flex items-center justify-center">
@@ -35,7 +48,7 @@ function PageLoader() {
 function App () {
   const {user, loading} = useAuth()
 
-  if(loading) return <div style={{background: '07071a', minHeight: '100vh'}} />
+  if(loading) return <FullScreenLoader />
 
   return (
     <BrowserRouter>

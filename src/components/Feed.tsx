@@ -1,4 +1,5 @@
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { supabase } from '../supabase'
 import PostCard from "./PostCard"
@@ -31,8 +32,6 @@ async function convertIfHeic(file: File): Promise<File> {
   )
 }
 
-// Fotoğrafı yüklemeden önce tarayıcıda küçültür - kalite kaybı gözle görülmez,
-// ama dosya boyutu ve yükleme/indirme süresi ciddi şekilde azalır.
 async function resizeImage(file: File, maxDimension: number, quality = 0.82): Promise<File> {
   return new Promise((resolve) => {
     const img = new window.Image()
@@ -73,21 +72,37 @@ async function resizeImage(file: File, maxDimension: number, quality = 0.82): Pr
   })
 }
 
+function PostSkeleton() {
+  return (
+    <div className="flex gap-3 p-4 border-b border-gray-800 animate-pulse">
+      <div className="w-10 h-10 rounded-full bg-gray-800 shrink-0" />
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="h-3 bg-gray-800 rounded w-24" />
+          <div className="h-3 bg-gray-800 rounded w-16" />
+        </div>
+        <div className="h-3 bg-gray-800 rounded w-full mb-2" />
+        <div className="h-3 bg-gray-800 rounded w-2/3" />
+      </div>
+    </div>
+  )
+}
+
 function Feed() {
 
   const { user, profile } = useAuth()
+  const { showToast } = useToast()
   const [posts, setPosts] = useState<any[]>([])
   const [avatarMap, setAvatarMap] = useState<Record<string, string>>({})
   const [newPost, setNewPost] = useState('')
   const [blockedUsernames, setBlockedUsernames] = useState<string[]>([])
 
-  // Sayfalama
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
-  // Resim seçme
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [converting, setConverting] = useState(false)
@@ -110,7 +125,6 @@ function Feed() {
     })
   }
 
-  // İlk yükleme: engellenmiş kullanıcıları belirle + ilk sayfayı çek
   const initFeed = async () => {
     const { data: blocksData } = await supabase
       .from('blocks')
@@ -132,6 +146,7 @@ function Feed() {
 
     setBlockedUsernames(usernames)
     await loadPage(0, usernames)
+    setInitialLoading(false)
   }
 
   const loadPage = async (pageNum: number, blockedList: string[]) => {
@@ -169,7 +184,6 @@ function Feed() {
     loadPage(page + 1, blockedUsernames)
   }, [page, hasMore, loadingMore, blockedUsernames])
 
-  // Yeniden paylaşımdan sonra feed'i baştan yenile
   const refreshFeed = () => {
     loadPage(0, blockedUsernames)
   }
@@ -186,7 +200,7 @@ function Feed() {
       setImagePreview(URL.createObjectURL(finalFile))
     } catch (err) {
       console.error('Resim dönüştürme hatası:', err)
-      alert('Bu fotoğraf yüklenemedi. Lütfen JPEG veya PNG formatında bir fotoğraf seçin.')
+      showToast('Bu fotoğraf yüklenemedi. Lütfen JPEG veya PNG formatında bir fotoğraf seçin.', 'error')
     } finally {
       setConverting(false)
     }
@@ -233,13 +247,13 @@ function Feed() {
     handleRemoveImage()
     setPosting(false)
     refreshFeed()
+    showToast('Postun paylaşıldı!', 'success')
   }
 
   useEffect(() => {
     initFeed()
   }, [])
 
-  // Sentinel görünür olduğunda otomatik sonraki sayfayı yükle
   useEffect(() => {
     const el = sentinelRef.current
     if (!el) return
@@ -258,14 +272,12 @@ function Feed() {
   return (
     <div className="flex-1 min-h-screen border-x border-gray-800">
 
-      {/* Başlık */}
       <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800">
         <h1 className="text-white font-bold text-xl">Anasayfa</h1>
       </div>
 
       <StoriesBar />
 
-      {/* Post atma alanı */}
       <div className="flex gap-3 p-4 border-b border-gray-800">
         {profile?.avatar_url ? (
           <img src={profile.avatar_url} alt="avatar" className="w-10 h-10 rounded-full object-cover shrink-0" />
@@ -281,7 +293,6 @@ function Feed() {
             onChange={(e) => setNewPost(e.target.value)}
           />
 
-          {/* Resim önizleme */}
           {imagePreview && (
             <div className="relative mt-2 rounded-2xl overflow-hidden border border-gray-700 w-fit">
               <img src={imagePreview} alt="önizleme" className="max-h-64 object-cover" />
@@ -326,23 +337,34 @@ function Feed() {
         </div>
       </div>
 
-      {/* Postlar */}
-      {posts.map((post: any) => (
-        <PostCard
-          key={post.id}
-          postId={post.id}
-          username={post.username}
-          handle={`@${post.username}`}
-          content={post.content}
-          imageUrl={post.image_url}
-          avatarUrl={avatarMap[post.username]}
-          createdAt={post.created_at}
-          onDelete={(deletedId) => setPosts((prev) => prev.filter((p) => p.id !== deletedId))}
-        />
-      ))}
+      {initialLoading ? (
+        <>
+          <PostSkeleton />
+          <PostSkeleton />
+          <PostSkeleton />
+        </>
+      ) : posts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+          <p className="text-white font-bold">Henüz post yok</p>
+          <p className="text-gray-500 text-sm mt-1">İlk paylaşımı sen yap!</p>
+        </div>
+      ) : (
+        posts.map((post: any) => (
+          <PostCard
+            key={post.id}
+            postId={post.id}
+            username={post.username}
+            handle={`@${post.username}`}
+            content={post.content}
+            imageUrl={post.image_url}
+            avatarUrl={avatarMap[post.username]}
+            createdAt={post.created_at}
+            onDelete={(deletedId) => setPosts((prev) => prev.filter((p) => p.id !== deletedId))}
+          />
+        ))
+      )}
 
-      {/* Kaydırınca otomatik yükleme tetikleyicisi */}
-      {hasMore && (
+      {hasMore && !initialLoading && (
         <div ref={sentinelRef} className="py-6 flex justify-center">
           {loadingMore && (
             <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />

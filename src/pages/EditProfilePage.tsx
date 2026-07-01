@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { useNavigate } from 'react-router-dom'
 
 async function convertIfHeic(file: File): Promise<File> {
@@ -29,7 +30,7 @@ async function convertIfHeic(file: File): Promise<File> {
 
 async function resizeImage(file: File, maxDimension: number, quality = 0.82): Promise<File> {
     return new Promise((resolve) => {
-        const img = new Image()
+        const img = new window.Image()
         const url = URL.createObjectURL(file)
 
         img.onload = () => {
@@ -69,12 +70,12 @@ async function resizeImage(file: File, maxDimension: number, quality = 0.82): Pr
 
 function EditProfilePage() {
     const { user, refreshProfile } = useAuth()
+    const { showToast } = useToast()
     const navigate = useNavigate()
     const [username, setUsername] = useState('')
     const [fullName, setFullName] = useState('')
     const [bio, setBio] = useState('')
 
-    // Avatar
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
     const [avatarFile, setAvatarFile] = useState<File | null>(null)
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -82,7 +83,6 @@ function EditProfilePage() {
     const [convertingAvatar, setConvertingAvatar] = useState(false)
     const avatarInputRef = useRef<HTMLInputElement>(null)
 
-    // Kapak fotoğrafı
     const [coverUrl, setCoverUrl] = useState<string | null>(null)
     const [coverFile, setCoverFile] = useState<File | null>(null)
     const [coverPreview, setCoverPreview] = useState<string | null>(null)
@@ -124,7 +124,7 @@ function EditProfilePage() {
             setAvatarRemoved(false)
         } catch (err) {
             console.error('Avatar dönüştürme hatası:', err)
-            alert('Bu fotoğraf yüklenemedi. Lütfen JPEG veya PNG formatında bir fotoğraf seçin.')
+            showToast('Bu fotoğraf yüklenemedi. Lütfen JPEG veya PNG formatında bir fotoğraf seçin.', 'error')
         } finally {
             setConvertingAvatar(false)
         }
@@ -143,7 +143,7 @@ function EditProfilePage() {
             setCoverRemoved(false)
         } catch (err) {
             console.error('Kapak dönüştürme hatası:', err)
-            alert('Bu fotoğraf yüklenemedi. Lütfen JPEG veya PNG formatında bir fotoğraf seçin.')
+            showToast('Bu fotoğraf yüklenemedi. Lütfen JPEG veya PNG formatında bir fotoğraf seçin.', 'error')
         } finally {
             setConvertingCover(false)
         }
@@ -185,7 +185,6 @@ function EditProfilePage() {
         let newAvatarUrl = avatarUrl
         let newCoverUrl = coverUrl
 
-        // Avatar işlemi
         if (avatarRemoved) {
             await removeStorageFiles('avatar.')
             newAvatarUrl = null
@@ -205,7 +204,6 @@ function EditProfilePage() {
             }
         }
 
-        // Kapak fotoğrafı işlemi
         if (coverRemoved) {
             await removeStorageFiles('cover.')
             newCoverUrl = null
@@ -238,6 +236,7 @@ function EditProfilePage() {
 
         setLoading(false)
         refreshProfile()
+        showToast('Profilin güncellendi!', 'success')
         navigate(`/profil/${username}`)
     }
 
@@ -248,7 +247,6 @@ function EditProfilePage() {
     return (
         <div className="flex-1 min-h-screen border-x border-gray-800">
 
-            {/* Başlık */}
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 flex items-center gap-4 z-10">
                 <button
                     onClick={() => navigate(-1)}
@@ -258,7 +256,6 @@ function EditProfilePage() {
                 <h1 className="text-white font-bold text-xl">Profili Düzenle</h1>
             </div>
 
-            {/* Kapak fotoğrafı */}
             <div
                 className="relative h-40 w-full cursor-pointer group"
                 onClick={() => !convertingCover && coverInputRef.current?.click()}
@@ -307,10 +304,8 @@ function EditProfilePage() {
                 </div>
             )}
 
-            {/* Form */}
             <div className="p-6 flex flex-col gap-4">
 
-                {/* Avatar */}
                 <div className="flex flex-col items-center gap-3 mb-2 -mt-16">
                     <div
                         className="relative w-24 h-24 rounded-full cursor-pointer group"

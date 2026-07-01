@@ -1,9 +1,11 @@
 import { useState } from "react"
 import { supabase } from "../supabase"
+import { useToast } from "../context/ToastContext"
 import { useNavigate, Link } from "react-router-dom"
 
 function RegisterPage() {
     const navigate = useNavigate()
+    const { showToast } = useToast()
     const [username, setUsername] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -11,7 +13,7 @@ function RegisterPage() {
 
     const handleRegister = async () => {
         if (!username.trim() || !email.trim() || !password.trim()) {
-            alert('Lütfen tüm alanları doldur.')
+            showToast('Lütfen tüm alanları doldur.', 'error')
             return
         }
 
@@ -28,9 +30,9 @@ function RegisterPage() {
         setLoading(false)
 
         if (error) {
-            alert('Hata: ' + error.message)
+            showToast('Hata: ' + error.message, 'error')
         } else {
-            alert('Kayıt başarılı! E-postanı kontrol et.')
+            showToast('Kayıt başarılı! E-postanı kontrol et.', 'success')
             navigate('/giris')
         }
     }
@@ -38,12 +40,10 @@ function RegisterPage() {
     return (
         <div style={{ position: 'relative', minHeight: '100vh', background: '#07071a', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '40px', overflow: 'hidden' }}>
 
-            {/* Arka plan ışıkları - LoginPage ile aynı */}
             <div style={{ position: 'absolute', width: '600px', height: '600px', background: '#4c1d95', borderRadius: '50%', filter: 'blur(90px)', opacity: 0.3, top: '-200px', left: '-150px' }} />
             <div style={{ position: 'absolute', width: '450px', height: '450px', background: '#1e3a8a', borderRadius: '50%', filter: 'blur(90px)', opacity: 0.3, bottom: '-150px', left: '150px' }} />
             <div style={{ position: 'absolute', width: '300px', height: '300px', background: '#831843', borderRadius: '50%', filter: 'blur(90px)', opacity: 0.3, top: '150px', left: '350px' }} />
 
-            {/* Animasyonlu SVG arka plan - LoginPage ile aynı */}
             <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
                 <style>{`
                     @keyframes flowLine{0%{stroke-dashoffset:1000}100%{stroke-dashoffset:0}}
@@ -92,7 +92,6 @@ function RegisterPage() {
                 <circle cx="280" cy="550" r="1.5" fill="#c084fc" style={{ animation: 'twinkle 3s ease-in-out infinite', animationDelay: '1.8s' }} />
             </svg>
 
-            {/* Kayıt Kartı */}
             <div style={{ position: 'relative', zIndex: 10, width: '420px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', padding: '44px', backdropFilter: 'blur(24px)' }}>
                 <div style={{ fontSize: '26px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>Flock</div>
                 <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '28px' }}>Hesap oluştur</div>
@@ -118,6 +117,7 @@ function RegisterPage() {
                     placeholder="Şifre"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleRegister() }}
                     style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px 16px', color: '#fff', fontSize: '14px', outline: 'none', boxSizing: 'border-box', marginBottom: '12px' }}
                 />
 

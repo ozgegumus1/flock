@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom"
 import { useState } from "react"
 import { supabase } from "../supabase"
+import { useToast } from "../context/ToastContext"
 import { useNavigate } from "react-router-dom"
 
 function LoginPage() {
     const navigate = useNavigate()
+    const { showToast } = useToast()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
 
@@ -15,7 +17,7 @@ function LoginPage() {
         })
 
         if (error) {
-            alert('Hata: ' + error.message)
+            showToast('Giriş başarısız: ' + error.message, 'error')
         } else {
             navigate('/')
         }
@@ -109,8 +111,8 @@ function LoginPage() {
 
                 <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>
                     Hesabın yok mu?
-                    <Link to="/kayit" style={{color: '#78bfa', cursor: 'pointer', textDecoration: 'none' }}>
-                    Kayıt ol 
+                    <Link to="/kayit" style={{color: '#a78bfa', cursor: 'pointer', textDecoration: 'none' }}>
+                    Kayıt ol
                     </Link>
                 </p>
             </div>
