@@ -35,7 +35,7 @@ async function convertIfHeic(file: File): Promise<File> {
 // ama dosya boyutu ve yükleme/indirme süresi ciddi şekilde azalır.
 async function resizeImage(file: File, maxDimension: number, quality = 0.82): Promise<File> {
   return new Promise((resolve) => {
-    const img = new Image()
+    const img = new window.Image()
     const url = URL.createObjectURL(file)
 
     img.onload = () => {
