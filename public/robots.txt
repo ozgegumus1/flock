@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /giris
+Allow: /kayit
+Disallow: /
+
+Sitemap: https://flocksocial.vercel.app/sitemap.xml
