@@ -20,7 +20,7 @@ function NotificationsPage() {
     const fetchNotifications = async () => {
         const { data } = await supabase
             .from('notifications')
-            .select('*, actor:profiles!notifications_actor_id_fkey(username)')
+            .select('*, actor:profiles!notifications_actor_id_fkey(username, avatar_url)')
             .eq('user_id', user?.id)
             .order('created_at', { ascending: false })
 
@@ -84,12 +84,10 @@ function NotificationsPage() {
     return (
         <div className="flex-1 min-h-screen border-x border-gray-800">
 
-            {/* Başlık */}
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800">
                 <h1 className="text-white font-bold text-xl">Bildirimler</h1>
             </div>
 
-            {/* Takip istekleri */}
             {!loadingRequests && followRequests.length > 0 && (
                 <div className="border-b border-gray-800">
                     <p className="text-gray-400 text-xs font-bold uppercase tracking-wide px-4 pt-4 pb-1">
@@ -143,7 +141,6 @@ function NotificationsPage() {
                 </div>
             )}
 
-            {/* Diğer bildirimler */}
             {notifications.length === 0 && followRequests.length === 0 ? (
                 <p className="text-gray-400 text-center py-8">Henüz bildirim yok.</p>
             ) : (
@@ -153,7 +150,15 @@ function NotificationsPage() {
                         className={`flex items-center gap-3 p-4 border-b border-gray-800 hover:bg-gray-900/50 transition cursor-pointer ${!notification.is_read ? 'bg-purple-950/10' : ''}`}
                         onClick={() => navigate(`/profil/${notification.actor?.username}`)}
                     >
-                        <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
+                        {notification.actor?.avatar_url ? (
+                            <img
+                                src={notification.actor.avatar_url}
+                                alt={notification.actor.username}
+                                className="w-10 h-10 rounded-full object-cover shrink-0"
+                            />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
+                        )}
                         <p className="text-white text-sm">
                             {notification.type === 'like' && `❤️ ${notification.actor?.username} postunu beğendi.`}
                             {notification.type === 'comment' && `💬 ${notification.actor?.username} postuna yorum yaptı.`}

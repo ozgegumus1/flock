@@ -20,14 +20,14 @@ function ProfilePage() {
     const [blockedByThem, setBlockedByThem] = useState(false)
     const [newPost, setNewPost] = useState('')
 
-    // Hikaye
     const [activeStories, setActiveStories] = useState<any[]>([])
     const [showStoryViewer, setShowStoryViewer] = useState(false)
 
-    // Modal state
     const [modalType, setModalType] = useState<'followers' | 'following' | null>(null)
     const [modalUsers, setModalUsers] = useState<any[]>([])
     const [modalLoading, setModalLoading] = useState(false)
+    const [modalStoryMap, setModalStoryMap] = useState<Record<string, any[]>>({})
+    const [modalViewerGroups, setModalViewerGroups] = useState<any[] | null>(null)
 
     const isOwnProfile = user?.user_metadata?.username === username
 
@@ -44,7 +44,6 @@ function ProfilePage() {
 
         setProfile(profileData)
 
-        // Aktif hikayeleri çek (süresi dolmamış)
         if (profileData) {
             const { data: stories } = await supabase
                 .from('stories')
@@ -56,7 +55,6 @@ function ProfilePage() {
             setActiveStories(stories ?? [])
         }
 
-        // Engelleme kontrolleri
         const { data: blockData } = await supabase
             .from('blocks')
             .select('*')
@@ -75,7 +73,6 @@ function ProfilePage() {
 
         const isMyOwnProfile = user?.user_metadata?.username === username
 
-        // Gizli hesap kontrolü: kendi profilim, takip ediyorsam veya açık hesapsa postları göster
         let canSeePosts = isMyOwnProfile || !profileData?.is_private
 
         if (!canSeePosts && profileData) {
@@ -89,7 +86,6 @@ function ProfilePage() {
             canSeePosts = !!acceptedFollow
         }
 
-        // Karşılıklı engel yoksa ve erişim varsa devam et
         if (!blockedByData && canSeePosts) {
             const { data: postsData } = await supabase
                 .from('posts')
@@ -141,19 +137,15 @@ function ProfilePage() {
 
     const handleBlock = async () => {
         if (isBlocked) {
-            // Engeli kaldır
             await supabase
                 .from('blocks')
                 .delete()
                 .eq('blocker_id', user?.id)
                 .eq('blocked_id', profile?.id)
         } else {
-            // Engelle - RPC fonksiyonu RLS'i bypass ederek
-            // karşılıklı takip ilişkisini de güvenli şekilde siler
             await supabase.rpc('block_user', { target_user_id: profile?.id })
         }
 
-        // Tek doğruluk kaynağı: verileri yeniden çek
         await fetchProfile()
     }
 
@@ -161,6 +153,9 @@ function ProfilePage() {
         setModalType(type)
         setModalLoading(true)
         setModalUsers([])
+        setModalStoryMap({})
+
+        let profiles: any[] = []
 
         if (type === 'followers') {
             const { data } = await supabase
@@ -171,11 +166,11 @@ function ProfilePage() {
 
             if (data && data.length > 0) {
                 const ids = data.map((f: any) => f.follower_id)
-                const { data: profiles } = await supabase
+                const { data: profs } = await supabase
                     .from('profiles')
-                    .select('username, full_name, avatar_url')
+                    .select('id, username, full_name, avatar_url')
                     .in('id', ids)
-                setModalUsers(profiles ?? [])
+                profiles = profs ?? []
             }
         } else {
             const { data } = await supabase
@@ -186,12 +181,31 @@ function ProfilePage() {
 
             if (data && data.length > 0) {
                 const ids = data.map((f: any) => f.following_id)
-                const { data: profiles } = await supabase
+                const { data: profs } = await supabase
                     .from('profiles')
-                    .select('username, full_name, avatar_url')
+                    .select('id, username, full_name, avatar_url')
                     .in('id', ids)
-                setModalUsers(profiles ?? [])
+                profiles = profs ?? []
             }
+        }
+
+        setModalUsers(profiles)
+
+        if (profiles.length > 0) {
+            const ids = profiles.map((p: any) => p.id)
+            const { data: stories } = await supabase
+                .from('stories')
+                .select('*')
+                .in('user_id', ids)
+                .gt('expires_at', new Date().toISOString())
+                .order('created_at', { ascending: true })
+
+            const grouped: Record<string, any[]> = {}
+            ;(stories ?? []).forEach((s: any) => {
+                if (!grouped[s.user_id]) grouped[s.user_id] = []
+                grouped[s.user_id].push(s)
+            })
+            setModalStoryMap(grouped)
         }
 
         setModalLoading(false)
@@ -200,11 +214,25 @@ function ProfilePage() {
     const closeModal = () => {
         setModalType(null)
         setModalUsers([])
+        setModalStoryMap({})
+    }
+
+    const openModalStoryViewer = (e: React.MouseEvent, u: any) => {
+        e.stopPropagation()
+        const stories = modalStoryMap[u.id]
+        if (!stories || stories.length === 0) return
+
+        setModalViewerGroups([{
+            userId: u.id,
+            username: u.username,
+            avatarUrl: u.avatar_url,
+            stories,
+            hasUnseen: false,
+        }])
     }
 
     const handleFollow = async () => {
         if (isPending) {
-            // İstek geri çekme
             await supabase
                 .from('follows')
                 .delete()
@@ -217,7 +245,6 @@ function ProfilePage() {
                 .eq('follower_id', user?.id)
                 .eq('following_id', profile?.id)
         } else if (profile?.is_private) {
-            // Gizli hesap - takip isteği gönder
             await supabase
                 .from('follows')
                 .insert({ follower_id: user?.id, following_id: profile?.id, status: 'pending' })
@@ -227,7 +254,6 @@ function ProfilePage() {
                 .insert({ follower_id: user?.id, following_id: profile?.id, status: 'accepted' })
         }
 
-        // Tek doğruluk kaynağı: verileri yeniden çek
         await fetchProfile()
     }
 
@@ -251,7 +277,6 @@ function ProfilePage() {
 
     if (!profile) return <div className="flex-1 p-4 text-white">Yükleniyor...</div>
 
-    // Beni engellemişse içeriği gösterme
     if (blockedByThem) return (
         <div className="flex-1 min-h-screen border-x border-gray-800 flex items-center justify-center">
             <p className="text-gray-400">Bu içeriği görüntüleyemezsiniz.</p>
@@ -263,7 +288,6 @@ function ProfilePage() {
     return (
         <div className="flex-1 min-h-screen border-x border-gray-800">
 
-            {/* Kapak Fotoğrafı */}
             {profile.cover_url ? (
                 <img
                     src={profile.cover_url}
@@ -274,10 +298,8 @@ function ProfilePage() {
                 <div className="h-48 bg-gradient-to-r from-purple-900 to-indigo-900" />
             )}
 
-            {/* Profil Bilgileri */}
             <div className="px-6 pb-4">
 
-                {/* Avatar */}
                 <div className="flex justify-between items-end -mt-12 mb-4">
                     <button
                         onClick={handleAvatarClick}
@@ -291,7 +313,6 @@ function ProfilePage() {
                         )}
                     </button>
 
-                    {/* Butonlar */}
                     <div className="flex gap-2 mt-14">
                         {isOwnProfile ? (
                             <>
@@ -332,12 +353,10 @@ function ProfilePage() {
                     </div>
                 </div>
 
-                {/* İsim ve Biyografi */}
                 <h1 className="text-white font-bold text-xl">{profile.full_name || profile.username}</h1>
                 <p className="text-gray-400 text-sm">@{profile.username}</p>
                 {profile.bio && <p className="text-white mt-3">{profile.bio}</p>}
 
-                {/* Takipçi Sayıları */}
                 <div className="flex gap-6 mt-4">
                     <div
                         className="cursor-pointer hover:underline"
@@ -356,14 +375,12 @@ function ProfilePage() {
                 </div>
             </div>
 
-            {/* Engellenmişse postları gösterme */}
             {isBlocked ? (
                 <div className="flex items-center justify-center py-16">
                     <p className="text-gray-400">Bu kullanıcıyı engellediniz.</p>
                 </div>
             ) : (
                 <>
-                    {/* Post atma alanı - sadece kendi profilinde görünsün */}
                     {isOwnProfile && (
                         <div className="flex gap-3 p-4 border-b border-gray-800">
                             <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
@@ -386,7 +403,6 @@ function ProfilePage() {
                         </div>
                     )}
 
-                    {/* Postlar */}
                     <div className="border-t border-gray-800">
                         {posts.length === 0 ? (
                             profile?.is_private && !isFollowing && !isOwnProfile ? (
@@ -419,7 +435,6 @@ function ProfilePage() {
                 </>
             )}
 
-            {/* Modal */}
             {modalType && (
                 <div
                     className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center"
@@ -449,33 +464,40 @@ function ProfilePage() {
                                     {modalType === 'followers' ? 'Henüz takipçi yok.' : 'Henüz kimse takip edilmiyor.'}
                                 </p>
                             ) : (
-                                modalUsers.map((u: any) => (
-                                    <div
-                                        key={u.username}
-                                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 cursor-pointer transition"
-                                        onClick={() => {
-                                            closeModal()
-                                            navigate(`/profil/${u.username}`)
-                                        }}
-                                    >
-                                        {u.avatar_url ? (
-                                            <img src={u.avatar_url} alt={u.username} className="w-10 h-10 rounded-full object-cover shrink-0" />
-                                        ) : (
-                                            <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
-                                        )}
-                                        <div>
-                                            <p className="text-white font-bold text-sm">{u.full_name || u.username}</p>
-                                            <p className="text-gray-400 text-xs">@{u.username}</p>
+                                modalUsers.map((u: any) => {
+                                    const hasStory = !!modalStoryMap[u.id]?.length
+                                    return (
+                                        <div
+                                            key={u.username}
+                                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 cursor-pointer transition"
+                                            onClick={() => {
+                                                closeModal()
+                                                navigate(`/profil/${u.username}`)
+                                            }}
+                                        >
+                                            <div
+                                                onClick={hasStory ? (e) => openModalStoryViewer(e, u) : undefined}
+                                                className={`rounded-full shrink-0 ${hasStory ? 'p-[2px] bg-gradient-to-tr from-purple-600 to-pink-500' : ''}`}
+                                            >
+                                                {u.avatar_url ? (
+                                                    <img src={u.avatar_url} alt={u.username} className="w-10 h-10 rounded-full object-cover" />
+                                                ) : (
+                                                    <div className="w-10 h-10 rounded-full bg-purple-500" />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <p className="text-white font-bold text-sm">{u.full_name || u.username}</p>
+                                                <p className="text-gray-400 text-xs">@{u.username}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))
+                                    )
+                                })
                             )}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Hikaye Görüntüleyici */}
             {showStoryViewer && hasActiveStories && (
                 <StoryViewer
                     groups={[{
@@ -487,6 +509,14 @@ function ProfilePage() {
                     }]}
                     startGroupIndex={0}
                     onClose={closeStoryViewer}
+                />
+            )}
+
+            {modalViewerGroups && (
+                <StoryViewer
+                    groups={modalViewerGroups}
+                    startGroupIndex={0}
+                    onClose={() => setModalViewerGroups(null)}
                 />
             )}
 

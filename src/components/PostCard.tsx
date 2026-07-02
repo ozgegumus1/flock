@@ -39,8 +39,8 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
   const { user } = useAuth()
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
+  const [likePop, setLikePop] = useState(false)
 
-  // Yorumlar
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<any[]>([])
   const [commentCount, setCommentCount] = useState(0)
@@ -48,11 +48,9 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
   const [loadingComments, setLoadingComments] = useState(false)
   const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null)
 
-  // Post seçenekleri menüsü
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // Post düzenleme
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(content)
   const [currentContent, setCurrentContent] = useState(content)
@@ -211,6 +209,8 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
         .insert({ post_id: postId, user_id: user?.id })
       setLiked(true)
       setLikeCount(likeCount + 1)
+      setLikePop(true)
+      setTimeout(() => setLikePop(false), 300)
     }
   }
 
@@ -249,7 +249,6 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
               )}
             </div>
 
-            {/* Üç nokta menüsü - sadece kendi postunda */}
             {isOwnPost && (
               <div className="relative" ref={menuRef}>
                 <button
@@ -308,7 +307,6 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
             <p className="text-white mt-1">{currentContent}</p>
           )}
 
-          {/* Post resmi */}
           {imageUrl && (
             <div className="mt-2 rounded-2xl overflow-hidden border border-gray-800">
               <img
@@ -325,7 +323,11 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
               onClick={handleLike}
               className={`flex items-center gap-1 transition cursor-pointer w-fit ${liked ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`}
             >
-              <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
+              <Heart
+                size={18}
+                fill={liked ? 'currentColor' : 'none'}
+                className={likePop ? 'scale-125 transition-transform duration-150' : 'scale-100 transition-transform duration-150'}
+              />
               <span className="text-sm">{likeCount}</span>
             </div>
 
@@ -340,10 +342,8 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
         </div>
       </div>
 
-      {/* Yorumlar bölümü */}
       {showComments && (
         <div className="px-4 pb-4 pl-16" onClick={(e) => e.stopPropagation()}>
-          {/* Yorum yazma */}
           <div className="flex gap-2 mb-3">
             <input
               type="text"
@@ -363,7 +363,6 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
             </button>
           </div>
 
-          {/* Yorum listesi */}
           {loadingComments ? (
             <p className="text-gray-500 text-sm">Yükleniyor...</p>
           ) : comments.length === 0 ? (

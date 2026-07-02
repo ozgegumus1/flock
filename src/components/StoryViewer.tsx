@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
-import { X, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
+import { useToast } from '../context/ToastContext'
+import { X, ChevronLeft, ChevronRight, Trash2, Heart, Send } from 'lucide-react'
 
 interface StoryGroup {
     userId: string
@@ -37,11 +38,18 @@ function formatStoryTime(dateString?: string): string {
 
 export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerProps) {
     const { user } = useAuth()
+    const { showToast } = useToast()
     const navigate = useNavigate()
     const [groupIndex, setGroupIndex] = useState(startGroupIndex)
     const [storyIndex, setStoryIndex] = useState(0)
     const [progress, setProgress] = useState(0)
     const [paused, setPaused] = useState(false)
+
+    const [liked, setLiked] = useState(false)
+    const [likePop, setLikePop] = useState(false)
+    const [replyText, setReplyText] = useState('')
+    const [sendingReply, setSendingReply] = useState(false)
+    const replyInputRef = useRef<HTMLInputElement>(null)
 
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const startTimeRef = useRef<number>(Date.now())
@@ -53,12 +61,16 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
     useEffect(() => {
         if (!currentStory) return
         markAsViewed(currentStory.id)
+        checkIfLiked(currentStory.id)
+        setReplyText('')
         startTimeRef.current = Date.now()
         setProgress(0)
     }, [groupIndex, storyIndex])
 
     useEffect(() => {
-        if (paused) {
+        // Yazarken veya beğenirken hikaye ilerlemesin
+        const shouldPause = paused || replyText.length > 0
+        if (shouldPause) {
             if (intervalRef.current) clearInterval(intervalRef.current)
             return
         }
@@ -74,13 +86,61 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
         }, 50)
 
         return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-    }, [groupIndex, storyIndex, paused])
+    }, [groupIndex, storyIndex, paused, replyText])
 
     const markAsViewed = async (storyId: string) => {
         if (isOwnStory) return
         await supabase
             .from('story_views')
             .upsert({ story_id: storyId, viewer_id: user?.id }, { onConflict: 'story_id,viewer_id' })
+    }
+
+    const checkIfLiked = async (storyId: string) => {
+        const { data } = await supabase
+            .from('story_likes')
+            .select('id')
+            .eq('story_id', storyId)
+            .eq('user_id', user?.id)
+            .single()
+
+        setLiked(!!data)
+    }
+
+    const handleToggleLike = async () => {
+        if (!currentStory || isOwnStory) return
+
+        if (liked) {
+            await supabase
+                .from('story_likes')
+                .delete()
+                .eq('story_id', currentStory.id)
+                .eq('user_id', user?.id)
+            setLiked(false)
+        } else {
+            await supabase
+                .from('story_likes')
+                .insert({ story_id: currentStory.id, user_id: user?.id })
+            setLiked(true)
+            setLikePop(true)
+            setTimeout(() => setLikePop(false), 300)
+        }
+    }
+
+    const handleSendReply = async () => {
+        if (!replyText.trim() || !currentStory || sendingReply) return
+        setSendingReply(true)
+
+        await supabase.from('messages').insert({
+            sender_id: user?.id,
+            receiver_id: currentGroup.userId,
+            content: replyText.trim(),
+            story_id: currentStory.id,
+            story_preview_url: currentStory.media_url,
+        })
+
+        setReplyText('')
+        setSendingReply(false)
+        showToast('Cevabın gönderildi!', 'success')
     }
 
     const goNext = () => {
@@ -181,26 +241,64 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
 
                 {/* Caption */}
                 {currentStory.caption && (
-                    <div className="absolute bottom-8 left-0 right-0 px-4 text-center z-10">
+                    <div className="absolute bottom-24 left-0 right-0 px-4 text-center z-10">
                         <p className="text-white text-base bg-black/40 inline-block px-4 py-2 rounded-xl">
                             {currentStory.caption}
                         </p>
                     </div>
                 )}
 
-                {/* Navigasyon alanları (tıklama ile geçiş) */}
+                {/* Navigasyon alanları (tıklama ile geçiş) - cevap kutusuyla çakışmasın diye biraz yukarıda bitiyor */}
                 <button
                     onClick={goPrev}
-                    className="absolute left-0 top-0 w-1/3 h-full z-10 flex items-center justify-start pl-1 opacity-0 hover:opacity-100 transition"
+                    className="absolute left-0 top-0 w-1/3 h-[85%] z-10 flex items-center justify-start pl-1 opacity-0 hover:opacity-100 transition"
                 >
                     <ChevronLeft size={28} className="text-white/70" />
                 </button>
                 <button
                     onClick={goNext}
-                    className="absolute right-0 top-0 w-1/3 h-full z-10 flex items-center justify-end pr-1 opacity-0 hover:opacity-100 transition"
+                    className="absolute right-0 top-0 w-1/3 h-[85%] z-10 flex items-center justify-end pr-1 opacity-0 hover:opacity-100 transition"
                 >
                     <ChevronRight size={28} className="text-white/70" />
                 </button>
+
+                {/* Alt bar - cevap yaz + beğen (sadece başkasının hikayesinde) */}
+                {!isOwnStory && (
+                    <div className="absolute bottom-0 left-0 right-0 px-3 py-4 z-30 flex items-center gap-2">
+                        <div className="flex-1 flex items-center bg-white/10 backdrop-blur-sm rounded-full border border-white/20 px-4 py-2.5">
+                            <input
+                                ref={replyInputRef}
+                                type="text"
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleSendReply() }}
+                                placeholder={`${currentGroup.username} kullanıcısına cevap ver...`}
+                                className="flex-1 bg-transparent text-white text-sm placeholder-white/50 outline-none min-w-0"
+                            />
+                        </div>
+
+                        {replyText.trim() ? (
+                            <button
+                                onClick={handleSendReply}
+                                disabled={sendingReply}
+                                className="text-white p-2.5 shrink-0 disabled:opacity-50"
+                            >
+                                <Send size={22} />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleToggleLike}
+                                className={`p-2.5 shrink-0 transition-transform duration-150 ${likePop ? 'scale-125' : 'scale-100'}`}
+                            >
+                                <Heart
+                                    size={26}
+                                    className={liked ? 'text-pink-500' : 'text-white'}
+                                    fill={liked ? 'currentColor' : 'none'}
+                                />
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     )
