@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { X, ChevronLeft, ChevronRight, Trash2, Heart, Send } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Trash2, Heart, Send, Eye } from 'lucide-react'
 
 interface StoryGroup {
     userId: string
@@ -51,6 +51,13 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
     const [sendingReply, setSendingReply] = useState(false)
     const replyInputRef = useRef<HTMLInputElement>(null)
 
+    // İzleyici listesi (sadece kendi hikayende)
+    const [viewCount, setViewCount] = useState(0)
+    const [showViewersList, setShowViewersList] = useState(false)
+    const [viewers, setViewers] = useState<any[]>([])
+    const [likedUserIds, setLikedUserIds] = useState<Set<string>>(new Set())
+    const [loadingViewers, setLoadingViewers] = useState(false)
+
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const startTimeRef = useRef<number>(Date.now())
 
@@ -63,13 +70,17 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
         markAsViewed(currentStory.id)
         checkIfLiked(currentStory.id)
         setReplyText('')
+        setShowViewersList(false)
         startTimeRef.current = Date.now()
         setProgress(0)
+
+        if (isOwnStory) {
+            fetchViewCount(currentStory.id)
+        }
     }, [groupIndex, storyIndex])
 
     useEffect(() => {
-        // Yazarken veya beğenirken hikaye ilerlemesin
-        const shouldPause = paused || replyText.length > 0
+        const shouldPause = paused || replyText.length > 0 || showViewersList
         if (shouldPause) {
             if (intervalRef.current) clearInterval(intervalRef.current)
             return
@@ -86,7 +97,7 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
         }, 50)
 
         return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-    }, [groupIndex, storyIndex, paused, replyText])
+    }, [groupIndex, storyIndex, paused, replyText, showViewersList])
 
     const markAsViewed = async (storyId: string) => {
         if (isOwnStory) return
@@ -104,6 +115,63 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
             .single()
 
         setLiked(!!data)
+    }
+
+    const fetchViewCount = async (storyId: string) => {
+        const { count } = await supabase
+            .from('story_views')
+            .select('*', { count: 'exact' })
+            .eq('story_id', storyId)
+
+        setViewCount(count ?? 0)
+    }
+
+    const openViewersList = async () => {
+        if (!currentStory) return
+        setShowViewersList(true)
+        setLoadingViewers(true)
+
+        const { data: views } = await supabase
+            .from('story_views')
+            .select('viewer_id, viewed_at:created_at')
+            .eq('story_id', currentStory.id)
+            .order('created_at', { ascending: false })
+
+        const { data: likes } = await supabase
+            .from('story_likes')
+            .select('user_id')
+            .eq('story_id', currentStory.id)
+
+        const likedSet = new Set((likes ?? []).map((l: any) => l.user_id))
+        setLikedUserIds(likedSet)
+
+        const viewerIds = (views ?? []).map((v: any) => v.viewer_id)
+        if (viewerIds.length > 0) {
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, username, full_name, avatar_url')
+                .in('id', viewerIds)
+
+            const profileMap: Record<string, any> = {}
+            ;(profiles ?? []).forEach((p: any) => { profileMap[p.id] = p })
+
+            const merged = viewerIds
+                .map((id: string) => profileMap[id])
+                .filter(Boolean)
+
+            // Beğenenler üstte görünsün
+            merged.sort((a: any, b: any) => {
+                const aLiked = likedSet.has(a.id) ? 1 : 0
+                const bLiked = likedSet.has(b.id) ? 1 : 0
+                return bLiked - aLiked
+            })
+
+            setViewers(merged)
+        } else {
+            setViewers([])
+        }
+
+        setLoadingViewers(false)
     }
 
     const handleToggleLike = async () => {
@@ -188,7 +256,6 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
                 onTouchStart={() => setPaused(true)}
                 onTouchEnd={() => setPaused(false)}
             >
-                {/* İlerleme çubukları */}
                 <div className="absolute top-2 left-2 right-2 flex gap-1 z-20">
                     {currentGroup.stories.map((_: any, i: number) => (
                         <div key={i} className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden">
@@ -202,7 +269,6 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
                     ))}
                 </div>
 
-                {/* Üst bar */}
                 <div className="absolute top-6 left-3 right-3 flex items-center justify-between z-20">
                     <div className="flex items-center gap-2">
                         {currentGroup.avatarUrl ? (
@@ -232,14 +298,12 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
                     </div>
                 </div>
 
-                {/* İçerik */}
                 <img
                     src={currentStory.media_url}
                     alt="story"
                     className="w-full h-full object-contain bg-black"
                 />
 
-                {/* Caption */}
                 {currentStory.caption && (
                     <div className="absolute bottom-24 left-0 right-0 px-4 text-center z-10">
                         <p className="text-white text-base bg-black/40 inline-block px-4 py-2 rounded-xl">
@@ -248,7 +312,6 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
                     </div>
                 )}
 
-                {/* Navigasyon alanları (tıklama ile geçiş) - cevap kutusuyla çakışmasın diye biraz yukarıda bitiyor */}
                 <button
                     onClick={goPrev}
                     className="absolute left-0 top-0 w-1/3 h-[85%] z-10 flex items-center justify-start pl-1 opacity-0 hover:opacity-100 transition"
@@ -262,7 +325,7 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
                     <ChevronRight size={28} className="text-white/70" />
                 </button>
 
-                {/* Alt bar - cevap yaz + beğen (sadece başkasının hikayesinde) */}
+                {/* Alt bar - başkasının hikayesinde: cevap + beğen */}
                 {!isOwnStory && (
                     <div className="absolute bottom-0 left-0 right-0 px-3 py-4 z-30 flex items-center gap-2">
                         <div className="flex-1 flex items-center bg-white/10 backdrop-blur-sm rounded-full border border-white/20 px-4 py-2.5">
@@ -297,6 +360,63 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
                                 />
                             </button>
                         )}
+                    </div>
+                )}
+
+                {/* Alt bar - kendi hikayende: izleyici sayısı */}
+                {isOwnStory && (
+                    <button
+                        onClick={openViewersList}
+                        className="absolute bottom-6 left-3 flex items-center gap-1.5 text-white/90 hover:text-white transition z-30 bg-black/30 px-3 py-1.5 rounded-full"
+                    >
+                        <Eye size={16} />
+                        <span className="text-sm font-medium">{viewCount}</span>
+                    </button>
+                )}
+
+                {/* İzleyici listesi (alttan açılan panel) */}
+                {showViewersList && (
+                    <div className="absolute inset-0 z-40 flex flex-col justify-end" onClick={() => setShowViewersList(false)}>
+                        <div
+                            className="bg-gray-900 rounded-t-3xl max-h-[60%] flex flex-col"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-center pt-3 pb-2">
+                                <div className="w-10 h-1 bg-gray-700 rounded-full" />
+                            </div>
+                            <div className="flex items-center gap-1.5 px-4 pb-3 text-white font-bold text-sm">
+                                <Eye size={16} />
+                                {viewCount} görüntülenme
+                            </div>
+                            <div className="overflow-y-auto px-2 pb-4">
+                                {loadingViewers ? (
+                                    <p className="text-gray-500 text-sm text-center py-6">Yükleniyor...</p>
+                                ) : viewers.length === 0 ? (
+                                    <p className="text-gray-500 text-sm text-center py-6">Henüz kimse görüntülemedi.</p>
+                                ) : (
+                                    viewers.map((v: any) => (
+                                        <div
+                                            key={v.id}
+                                            onClick={() => { onClose(); navigate(`/profil/${v.username}`) }}
+                                            className="flex items-center gap-3 px-2 py-2.5 hover:bg-gray-800 rounded-xl cursor-pointer transition"
+                                        >
+                                            {v.avatar_url ? (
+                                                <img src={v.avatar_url} alt={v.username} className="w-10 h-10 rounded-full object-cover" />
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full bg-purple-500" />
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-white font-bold text-sm truncate">{v.full_name || v.username}</p>
+                                                <p className="text-gray-500 text-xs truncate">@{v.username}</p>
+                                            </div>
+                                            {likedUserIds.has(v.id) && (
+                                                <Heart size={18} className="text-pink-500 shrink-0" fill="currentColor" />
+                                            )}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

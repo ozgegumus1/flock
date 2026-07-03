@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { StoryViewer } from '../components/StoryViewer'
 import { Check, X } from 'lucide-react'
 
 function NotificationsPage() {
@@ -10,6 +11,7 @@ function NotificationsPage() {
     const [notifications, setNotifications] = useState<any[]>([])
     const [followRequests, setFollowRequests] = useState<any[]>([])
     const [loadingRequests, setLoadingRequests] = useState(true)
+    const [viewerGroups, setViewerGroups] = useState<any[] | null>(null)
 
     useEffect(() => {
         fetchNotifications()
@@ -81,6 +83,40 @@ function NotificationsPage() {
         setFollowRequests((prev) => prev.filter((r) => r.requestId !== requestId))
     }
 
+    const handleNotificationClick = async (notification: any) => {
+        // like veya comment -> ilgili posta git
+        if ((notification.type === 'like' || notification.type === 'comment') && notification.post_id) {
+            navigate(`/gonderi/${notification.post_id}`)
+            return
+        }
+
+        // story_like -> o hikayeyi aç (hâlâ aktifse)
+        if (notification.type === 'story_like' && notification.story_id) {
+            const { data: story } = await supabase
+                .from('stories')
+                .select('*')
+                .eq('id', notification.story_id)
+                .gt('expires_at', new Date().toISOString())
+                .single()
+
+            if (story) {
+                setViewerGroups([{
+                    userId: user?.id,
+                    username: user?.user_metadata?.username,
+                    avatarUrl: notification.actor?.avatar_url ?? null,
+                    stories: [story],
+                    hasUnseen: false,
+                }])
+            } else {
+                navigate(`/profil/${notification.actor?.username}`)
+            }
+            return
+        }
+
+        // follow veya follow_accepted -> profile git
+        navigate(`/profil/${notification.actor?.username}`)
+    }
+
     return (
         <div className="flex-1 min-h-screen border-x border-gray-800">
 
@@ -148,7 +184,7 @@ function NotificationsPage() {
                     <div
                         key={notification.id}
                         className={`flex items-center gap-3 p-4 border-b border-gray-800 hover:bg-gray-900/50 transition cursor-pointer ${!notification.is_read ? 'bg-purple-950/10' : ''}`}
-                        onClick={() => navigate(`/profil/${notification.actor?.username}`)}
+                        onClick={() => handleNotificationClick(notification)}
                     >
                         {notification.actor?.avatar_url ? (
                             <img
@@ -164,9 +200,18 @@ function NotificationsPage() {
                             {notification.type === 'comment' && `💬 ${notification.actor?.username} postuna yorum yaptı.`}
                             {notification.type === 'follow' && `👤 ${notification.actor?.username} seni takip etti.`}
                             {notification.type === 'follow_accepted' && `✅ ${notification.actor?.username} takip isteğini kabul etti.`}
+                            {notification.type === 'story_like' && `❤️ ${notification.actor?.username} hikayeni beğendi.`}
                         </p>
                     </div>
                 ))
+            )}
+
+            {viewerGroups && (
+                <StoryViewer
+                    groups={viewerGroups}
+                    startGroupIndex={0}
+                    onClose={() => setViewerGroups(null)}
+                />
             )}
 
         </div>
