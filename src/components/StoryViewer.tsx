@@ -44,6 +44,7 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
     const [storyIndex, setStoryIndex] = useState(0)
     const [progress, setProgress] = useState(0)
     const [paused, setPaused] = useState(false)
+    const [replyFocused, setReplyFocused] = useState(false)
 
     const [liked, setLiked] = useState(false)
     const [likePop, setLikePop] = useState(false)
@@ -51,7 +52,6 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
     const [sendingReply, setSendingReply] = useState(false)
     const replyInputRef = useRef<HTMLInputElement>(null)
 
-    // İzleyici listesi (sadece kendi hikayende)
     const [viewCount, setViewCount] = useState(0)
     const [showViewersList, setShowViewersList] = useState(false)
     const [viewers, setViewers] = useState<any[]>([])
@@ -70,6 +70,7 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
         markAsViewed(currentStory.id)
         checkIfLiked(currentStory.id)
         setReplyText('')
+        setReplyFocused(false)
         setShowViewersList(false)
         startTimeRef.current = Date.now()
         setProgress(0)
@@ -80,7 +81,8 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
     }, [groupIndex, storyIndex])
 
     useEffect(() => {
-        const shouldPause = paused || replyText.length > 0 || showViewersList
+        // Kutucuğa dokununca (henüz yazmadan bile), beğenirken veya izleyici listesi açıkken duraklat
+        const shouldPause = paused || replyFocused || replyText.length > 0 || showViewersList
         if (shouldPause) {
             if (intervalRef.current) clearInterval(intervalRef.current)
             return
@@ -97,7 +99,7 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
         }, 50)
 
         return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-    }, [groupIndex, storyIndex, paused, replyText, showViewersList])
+    }, [groupIndex, storyIndex, paused, replyFocused, replyText, showViewersList])
 
     const markAsViewed = async (storyId: string) => {
         if (isOwnStory) return
@@ -131,11 +133,13 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
         setShowViewersList(true)
         setLoadingViewers(true)
 
-        const { data: views } = await supabase
+        const { data: views, error: viewsError } = await supabase
             .from('story_views')
-            .select('viewer_id, viewed_at:created_at')
+            .select('viewer_id, created_at')
             .eq('story_id', currentStory.id)
             .order('created_at', { ascending: false })
+
+        console.log('story_views sonucu:', views, viewsError)
 
         const { data: likes } = await supabase
             .from('story_likes')
@@ -147,10 +151,12 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
 
         const viewerIds = (views ?? []).map((v: any) => v.viewer_id)
         if (viewerIds.length > 0) {
-            const { data: profiles } = await supabase
+            const { data: profiles, error: profilesError } = await supabase
                 .from('profiles')
                 .select('id, username, full_name, avatar_url')
                 .in('id', viewerIds)
+
+            console.log('profiller sonucu:', profiles, profilesError)
 
             const profileMap: Record<string, any> = {}
             ;(profiles ?? []).forEach((p: any) => { profileMap[p.id] = p })
@@ -159,7 +165,6 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
                 .map((id: string) => profileMap[id])
                 .filter(Boolean)
 
-            // Beğenenler üstte görünsün
             merged.sort((a: any, b: any) => {
                 const aLiked = likedSet.has(a.id) ? 1 : 0
                 const bLiked = likedSet.has(b.id) ? 1 : 0
@@ -251,9 +256,16 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
         <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
             <div
                 className="relative w-full h-full max-w-md mx-auto"
-                onMouseDown={() => setPaused(true)}
+                onMouseDown={(e) => {
+                    // Alt bardaki input/butonlara tıklarken duraklatma tetiklenmesin
+                    if ((e.target as HTMLElement).closest('[data-story-controls]')) return
+                    setPaused(true)
+                }}
                 onMouseUp={() => setPaused(false)}
-                onTouchStart={() => setPaused(true)}
+                onTouchStart={(e) => {
+                    if ((e.target as HTMLElement).closest('[data-story-controls]')) return
+                    setPaused(true)
+                }}
                 onTouchEnd={() => setPaused(false)}
             >
                 <div className="absolute top-2 left-2 right-2 flex gap-1 z-20">
@@ -325,15 +337,16 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
                     <ChevronRight size={28} className="text-white/70" />
                 </button>
 
-                {/* Alt bar - başkasının hikayesinde: cevap + beğen */}
                 {!isOwnStory && (
-                    <div className="absolute bottom-0 left-0 right-0 px-3 py-4 z-30 flex items-center gap-2">
+                    <div data-story-controls className="absolute bottom-0 left-0 right-0 px-3 py-4 z-30 flex items-center gap-2">
                         <div className="flex-1 flex items-center bg-white/10 backdrop-blur-sm rounded-full border border-white/20 px-4 py-2.5">
                             <input
                                 ref={replyInputRef}
                                 type="text"
                                 value={replyText}
                                 onChange={(e) => setReplyText(e.target.value)}
+                                onFocus={() => setReplyFocused(true)}
+                                onBlur={() => setReplyFocused(false)}
                                 onKeyDown={(e) => { if (e.key === 'Enter') handleSendReply() }}
                                 placeholder={`${currentGroup.username} kullanıcısına cevap ver...`}
                                 className="flex-1 bg-transparent text-white text-sm placeholder-white/50 outline-none min-w-0"
@@ -363,9 +376,9 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
                     </div>
                 )}
 
-                {/* Alt bar - kendi hikayende: izleyici sayısı */}
                 {isOwnStory && (
                     <button
+                        data-story-controls
                         onClick={openViewersList}
                         className="absolute bottom-6 left-3 flex items-center gap-1.5 text-white/90 hover:text-white transition z-30 bg-black/30 px-3 py-1.5 rounded-full"
                     >
@@ -374,9 +387,8 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
                     </button>
                 )}
 
-                {/* İzleyici listesi (alttan açılan panel) */}
                 {showViewersList && (
-                    <div className="absolute inset-0 z-40 flex flex-col justify-end" onClick={() => setShowViewersList(false)}>
+                    <div data-story-controls className="absolute inset-0 z-40 flex flex-col justify-end" onClick={() => setShowViewersList(false)}>
                         <div
                             className="bg-gray-900 rounded-t-3xl max-h-[60%] flex flex-col"
                             onClick={(e) => e.stopPropagation()}

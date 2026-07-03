@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
-import { MoreVertical, Trash2, Send } from 'lucide-react'
+import { MoreVertical, Trash2, Send, Image as ImageIcon } from 'lucide-react'
 
 function formatMessageTime(dateString: string): string {
     const date = new Date(dateString)
@@ -58,7 +58,6 @@ function ChatPage() {
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
 
-    // Realtime: yeni mesaj + yazıyor sinyali
     useEffect(() => {
         if (!otherProfile || !user?.id) return
 
@@ -79,7 +78,6 @@ function ChatPage() {
                         return [...prev, msg]
                     })
                     setIsOtherTyping(false)
-                    // Okundu işaretle
                     supabase
                         .from('messages')
                         .update({ is_read: true })
@@ -194,7 +192,6 @@ function ChatPage() {
 
     return (
         <div className="flex-1 min-h-screen border-x border-gray-800 flex flex-col">
-            {/* Başlık */}
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 flex items-center gap-3 z-10">
                 <button
                     onClick={() => navigate('/mesajlar')}
@@ -230,7 +227,6 @@ function ChatPage() {
                 </div>
             </div>
 
-            {/* Mesajlar */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
                 {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center gap-2">
@@ -255,7 +251,6 @@ function ChatPage() {
                                 key={msg.id}
                                 className={`group flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'} ${isLastOfGroup ? 'mb-3' : 'mb-0.5'}`}
                             >
-                                {/* Karşı taraf avatarı - sadece grubun ilk mesajında */}
                                 {!isMine && (
                                     <div className="w-7 h-7 shrink-0">
                                         {showAvatar && (
@@ -268,7 +263,6 @@ function ChatPage() {
                                     </div>
                                 )}
 
-                                {/* Üç nokta menüsü - sadece kendi mesajlarında, hover'da görünür */}
                                 {isMine && (
                                     <div className="relative" ref={openMenuId === msg.id ? menuRef : null}>
                                         <button
@@ -292,6 +286,19 @@ function ChatPage() {
                                 )}
 
                                 <div className="flex flex-col max-w-[70%]">
+                                    {msg.story_id && msg.story_preview_url && (
+                                        <div className={`flex items-center gap-2 mb-1 ${isMine ? 'flex-row-reverse' : ''}`}>
+                                            <img
+                                                src={msg.story_preview_url}
+                                                alt="hikaye"
+                                                className="w-10 h-14 rounded-lg object-cover border border-gray-700 shrink-0"
+                                            />
+                                            <span className="text-gray-500 text-xs flex items-center gap-1">
+                                                <ImageIcon size={12} />
+                                                {isMine ? 'Hikayesine cevap verdin' : 'Hikayene cevap verdi'}
+                                            </span>
+                                        </div>
+                                    )}
                                     <div
                                         className={`px-4 py-2 rounded-2xl text-sm break-words ${
                                             isMine
@@ -313,7 +320,6 @@ function ChatPage() {
                     })
                 )}
 
-                {/* Yazıyor göstergesi */}
                 {isOtherTyping && (
                     <div className="flex items-end gap-2 justify-start">
                         <div className="w-7 h-7 shrink-0">
@@ -334,7 +340,6 @@ function ChatPage() {
                 <div ref={bottomRef} />
             </div>
 
-            {/* Mesaj yazma alanı */}
             <div className="border-t border-gray-800 px-4 py-3 flex gap-3 items-end">
                 <textarea
                     placeholder="Mesaj yaz..."
