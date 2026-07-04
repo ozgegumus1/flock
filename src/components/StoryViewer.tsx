@@ -133,16 +133,11 @@ export function StoryViewer({ groups, startGroupIndex, onClose }: StoryViewerPro
         setShowViewersList(true)
         setLoadingViewers(true)
 
-        const { data: views, error: viewsError } = await supabase
+        const { data: views } = await supabase
     .from('story_views')
-    .select('viewer_id, created_at')
+    .select('viewer_id, viewed_at')
     .eq('story_id', currentStory.id)
-    .order('created_at', { ascending: false })
-
-if (viewsError) {
-    alert('HATA: ' + JSON.stringify(viewsError))
-}
-console.log('story_views sonucu:', views, viewsError)
+    .order('viewed_at', { ascending: false })
 
         const { data: likes } = await supabase
             .from('story_likes')
