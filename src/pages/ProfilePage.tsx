@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext'
 import { convertIfHeic, resizeImage } from '../utils/imageHelpers'
 import PostCard from '../components/PostCard'
 import { StoryViewer } from '../components/StoryViewer'
-import { Settings, Image as ImageIcon, X } from 'lucide-react'
+import { Settings, Image as ImageIcon, X, Pencil } from 'lucide-react'
 
 function ProfilePage() {
     const navigate = useNavigate()
@@ -23,7 +23,6 @@ function ProfilePage() {
     const [blockedByThem, setBlockedByThem] = useState(false)
     const [newPost, setNewPost] = useState('')
 
-    // Görsel seçme
     const [imageFile, setImageFile] = useState<File | null>(null)
     const [imagePreview, setImagePreview] = useState<string | null>(null)
     const [converting, setConverting] = useState(false)
@@ -32,6 +31,7 @@ function ProfilePage() {
 
     const [activeStories, setActiveStories] = useState<any[]>([])
     const [showStoryViewer, setShowStoryViewer] = useState(false)
+    const [showPhotoModal, setShowPhotoModal] = useState(false)
 
     const [modalType, setModalType] = useState<'followers' | 'following' | null>(null)
     const [modalUsers, setModalUsers] = useState<any[]>([])
@@ -137,6 +137,8 @@ function ProfilePage() {
     const handleAvatarClick = () => {
         if (activeStories.length > 0) {
             setShowStoryViewer(true)
+        } else {
+            setShowPhotoModal(true)
         }
     }
 
@@ -364,8 +366,7 @@ function ProfilePage() {
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end -mt-12 mb-4 gap-3">
                     <button
                         onClick={handleAvatarClick}
-                        disabled={!hasActiveStories}
-                        className={`rounded-full ${hasActiveStories ? 'p-[3px] bg-gradient-to-tr from-purple-600 to-pink-500 cursor-pointer' : ''}`}
+                        className={`rounded-full w-fit ${hasActiveStories ? 'p-[3px] bg-gradient-to-tr from-purple-600 to-pink-500 cursor-pointer' : 'cursor-pointer'}`}
                     >
                         {profile.avatar_url ? (
                             <img src={profile.avatar_url} alt="avatar" className="w-24 h-24 rounded-full object-cover border-4 border-gray-950" />
@@ -533,6 +534,47 @@ function ProfilePage() {
                         )}
                     </div>
                 </>
+            )}
+
+            {/* Profil fotoğrafını büyütme modalı */}
+            {showPhotoModal && (
+                <div
+                    className="fixed inset-0 bg-black/85 z-50 flex flex-col items-center justify-center px-6"
+                    onClick={() => setShowPhotoModal(false)}
+                >
+                    <button
+                        onClick={() => setShowPhotoModal(false)}
+                        className="absolute top-6 right-6 text-white/80 hover:text-white transition"
+                    >
+                        <X size={26} />
+                    </button>
+
+                    {profile.avatar_url ? (
+                        <img
+                            src={profile.avatar_url}
+                            alt="avatar"
+                            className="w-64 h-64 sm:w-80 sm:h-80 rounded-full object-cover"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    ) : (
+                        <div
+                            className="w-64 h-64 sm:w-80 sm:h-80 rounded-full bg-purple-500"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    )}
+
+                    <p className="text-white font-bold text-lg mt-5">{profile.full_name || profile.username}</p>
+
+                    {isOwnProfile && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); navigate('/profil-duzenle') }}
+                            className="mt-4 flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold px-5 py-2.5 rounded-full transition"
+                        >
+                            <Pencil size={16} />
+                            Profili Düzenle
+                        </button>
+                    )}
+                </div>
             )}
 
             {modalType && (

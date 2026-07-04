@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 
 function RightPanel() {
     const { user } = useAuth()
     const navigate = useNavigate()
+    const location = useLocation()
     const [suggestions, setSuggestions] = useState<any[]>([])
+
+    const showTrending = location.pathname === '/kesfet'
 
     useEffect(() => {
         fetchSuggestions()
     }, [])
 
     const fetchSuggestions = async () => {
-        // Zaten takip ettiklerini al
         const { data: followData } = await supabase
             .from('follows')
             .select('following_id')
@@ -21,14 +23,12 @@ function RightPanel() {
 
         const followedIds = new Set((followData ?? []).map((f: any) => f.following_id))
 
-        // Kendisi hariç tüm kullanıcıları getir
         const { data: profiles } = await supabase
             .from('profiles')
             .select('id, username, full_name, avatar_url')
             .neq('id', user?.id)
             .limit(10)
 
-        // Takip edilmeyenleri filtrele
         const filtered = (profiles ?? []).filter((p: any) => !followedIds.has(p.id))
         setSuggestions(filtered.slice(0, 3))
     }
@@ -45,27 +45,29 @@ function RightPanel() {
 
     return (
         <div className="w-80 min-h-screen bg-gray-900 flex flex-col p-4">
-            {/* Gündemde */}
-            <div className="bg-gray-800 rounded-2xl p-4 mb-4">
-                <h2 className="text-white font-bold text-xl mb-4">Gündemde</h2>
-                <div className="flex flex-col gap-3">
-                    <div className="cursor-pointer hover:bg-gray-700 p-2 rounded-xl transition">
-                        <p className="text-gray-400 text-xs">Yazılım • Gündemde</p>
-                        <p className="text-white font-bold">React</p>
-                        <p className="text-gray-400 text-xs">1.240 post</p>
-                    </div>
-                    <div className="cursor-pointer hover:bg-gray-700 p-2 rounded-xl transition">
-                        <p className="text-gray-400 text-xs">Yazılım • Gündemde</p>
-                        <p className="text-white font-bold">#Typescript</p>
-                        <p className="text-gray-400 text-xs">890 post</p>
-                    </div>
-                    <div className="cursor-pointer hover:bg-gray-700 p-2 rounded-xl transition">
-                        <p className="text-gray-400 text-xs">Yazılım • Gündemde</p>
-                        <p className="text-white font-bold">#Javascript</p>
-                        <p className="text-gray-400 text-xs">2.100 post</p>
+            {/* Gündemde - sadece Keşfet sayfasında */}
+            {showTrending && (
+                <div className="bg-gray-800 rounded-2xl p-4 mb-4">
+                    <h2 className="text-white font-bold text-xl mb-4">Gündemde</h2>
+                    <div className="flex flex-col gap-3">
+                        <div className="cursor-pointer hover:bg-gray-700 p-2 rounded-xl transition">
+                            <p className="text-gray-400 text-xs">Yazılım • Gündemde</p>
+                            <p className="text-white font-bold">React</p>
+                            <p className="text-gray-400 text-xs">1.240 post</p>
+                        </div>
+                        <div className="cursor-pointer hover:bg-gray-700 p-2 rounded-xl transition">
+                            <p className="text-gray-400 text-xs">Yazılım • Gündemde</p>
+                            <p className="text-white font-bold">#Typescript</p>
+                            <p className="text-gray-400 text-xs">890 post</p>
+                        </div>
+                        <div className="cursor-pointer hover:bg-gray-700 p-2 rounded-xl transition">
+                            <p className="text-gray-400 text-xs">Yazılım • Gündemde</p>
+                            <p className="text-white font-bold">#Javascript</p>
+                            <p className="text-gray-400 text-xs">2.100 post</p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Tanıyor olabilirsin */}
             <div className="bg-gray-800 rounded-2xl p-4">

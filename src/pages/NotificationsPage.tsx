@@ -5,6 +5,25 @@ import { useNavigate } from 'react-router-dom'
 import { StoryViewer } from '../components/StoryViewer'
 import { Check, X } from 'lucide-react'
 
+function formatNotifTime(dateString?: string): string {
+    if (!dateString) return ''
+
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffSec = Math.floor(diffMs / 1000)
+    const diffMin = Math.floor(diffSec / 60)
+    const diffHour = Math.floor(diffMin / 60)
+    const diffDay = Math.floor(diffHour / 24)
+
+    if (diffSec < 60) return 'şimdi'
+    if (diffMin < 60) return `${diffMin}dk`
+    if (diffHour < 24) return `${diffHour}sa`
+    if (diffDay < 7) return `${diffDay}g`
+
+    return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+}
+
 function NotificationsPage() {
     const { user } = useAuth()
     const navigate = useNavigate()
@@ -84,13 +103,11 @@ function NotificationsPage() {
     }
 
     const handleNotificationClick = async (notification: any) => {
-        // like veya comment -> ilgili posta git
         if ((notification.type === 'like' || notification.type === 'comment') && notification.post_id) {
             navigate(`/gonderi/${notification.post_id}`)
             return
         }
 
-        // story_like -> o hikayeyi aç (hâlâ aktifse)
         if (notification.type === 'story_like' && notification.story_id) {
             const { data: story } = await supabase
                 .from('stories')
@@ -113,7 +130,6 @@ function NotificationsPage() {
             return
         }
 
-        // follow veya follow_accepted -> profile git
         navigate(`/profil/${notification.actor?.username}`)
     }
 
@@ -195,13 +211,16 @@ function NotificationsPage() {
                         ) : (
                             <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
                         )}
-                        <p className="text-white text-sm">
-                            {notification.type === 'like' && `❤️ ${notification.actor?.username} postunu beğendi.`}
-                            {notification.type === 'comment' && `💬 ${notification.actor?.username} postuna yorum yaptı.`}
-                            {notification.type === 'follow' && `👤 ${notification.actor?.username} seni takip etti.`}
-                            {notification.type === 'follow_accepted' && `✅ ${notification.actor?.username} takip isteğini kabul etti.`}
-                            {notification.type === 'story_like' && `❤️ ${notification.actor?.username} hikayeni beğendi.`}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm">
+                                {notification.type === 'like' && `❤️ ${notification.actor?.username} postunu beğendi.`}
+                                {notification.type === 'comment' && `💬 ${notification.actor?.username} postuna yorum yaptı.`}
+                                {notification.type === 'follow' && `👤 ${notification.actor?.username} seni takip etti.`}
+                                {notification.type === 'follow_accepted' && `✅ ${notification.actor?.username} takip isteğini kabul etti.`}
+                                {notification.type === 'story_like' && `❤️ ${notification.actor?.username} hikayeni beğendi.`}
+                            </p>
+                            <p className="text-gray-500 text-xs mt-0.5">{formatNotifTime(notification.created_at)}</p>
+                        </div>
                     </div>
                 ))
             )}

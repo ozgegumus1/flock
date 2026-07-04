@@ -1,9 +1,18 @@
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../supabase'
 import { Link } from 'react-router-dom'
-import { Home, Compass, Bell, Mail, User, Settings } from 'lucide-react'
+import { Home, Compass, Bell, Mail, User, Settings, LogOut } from 'lucide-react'
+import { useState } from 'react'
 
 function Sidebar() {
     const { user, unreadMessages, unreadNotifications } = useAuth()
+    const [showLogoutModal, setShowLogoutModal] = useState(false)
+    const [loggingOut, setLoggingOut] = useState(false)
+
+    const handleLogout = async () => {
+        setLoggingOut(true)
+        await supabase.auth.signOut()
+    }
 
     return (
         <div className="w-64 min-h-screen bg-gray-900 flex flex-col p-4">
@@ -54,8 +63,43 @@ function Sidebar() {
                <Link to="/ayarlar" className='flex items-center gap-3 text-white px-3 py-3 rounded-xl hover:bg-gray-800 transition'>
                <Settings size={22} /> Ayarlar
                </Link>
+
+               <button
+                    onClick={() => setShowLogoutModal(true)}
+                    className="flex items-center gap-3 text-gray-400 hover:text-red-400 px-3 py-3 rounded-xl hover:bg-gray-800 transition text-left"
+               >
+                    <LogOut size={22} /> Çıkış Yap
+               </button>
             </nav>
 
+            {/* Çıkış onay modalı */}
+            {showLogoutModal && (
+                <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center px-4">
+                    <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-xs p-6 text-center">
+                        <div className="w-14 h-14 rounded-full bg-red-950/40 flex items-center justify-center mx-auto mb-4">
+                            <LogOut size={24} className="text-red-400" />
+                        </div>
+                        <h3 className="text-white font-bold text-lg mb-1">Çıkış yap</h3>
+                        <p className="text-gray-400 text-sm mb-6">Hesabından çıkış yapmak istediğine emin misin?</p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setShowLogoutModal(false)}
+                                disabled={loggingOut}
+                                className="flex-1 border border-gray-700 text-white text-sm font-bold py-2.5 rounded-xl hover:bg-gray-800 transition disabled:opacity-50"
+                            >
+                                Vazgeç
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                disabled={loggingOut}
+                                className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2.5 rounded-xl transition disabled:opacity-50"
+                            >
+                                {loggingOut ? 'Çıkılıyor...' : 'Çıkış Yap'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

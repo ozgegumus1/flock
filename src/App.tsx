@@ -7,6 +7,7 @@ import RegisterPage from "./pages/RegisterPage";
 import Sidebar from "./components/Sidebar";
 import RightPanel from "./components/RightPanel";
 import HomePage from "./pages/HomePage";
+import { PullToRefresh } from "./components/PullToRefresh";
 
 const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
@@ -58,6 +59,7 @@ function App () {
 <Route path="/kayit" element={!user ? <RegisterPage /> : <Navigate to="/" />} />
 
 <Route path="/*" element={user ? (
+  <PullToRefresh>
   <div className="bg-gray-950 min-h-screen text-white flex pb-16 md:pb-0">
     <div className="hidden md:block">
         <Sidebar />
@@ -88,6 +90,7 @@ function App () {
     </div>
     <BottomNav />
 </div>
+  </PullToRefresh>
 ) : <Navigate to="/giris" />} />
     </Routes>
     </BrowserRouter>

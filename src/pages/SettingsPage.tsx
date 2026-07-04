@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useState } from 'react'
 import { supabase } from '../supabase'
+import { useAuth } from '../context/AuthContext'
 import {
     User,
     Lock,
@@ -17,10 +18,11 @@ import {
 function SettingsPage() {
     const navigate = useNavigate()
     const { user } = useAuth()
+    const [showLogoutModal, setShowLogoutModal] = useState(false)
+    const [loggingOut, setLoggingOut] = useState(false)
 
     const handleLogout = async () => {
-        const confirmed = window.confirm('Çıkış yapmak istediğine emin misin?')
-        if (!confirmed) return
+        setLoggingOut(true)
         await supabase.auth.signOut()
     }
 
@@ -51,7 +53,6 @@ function SettingsPage() {
 
     return (
         <div className="flex-1 min-h-screen border-x border-gray-800">
-            {/* Başlık */}
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 flex items-center gap-4 z-10">
                 <button
                     onClick={() => navigate(-1)}
@@ -62,7 +63,6 @@ function SettingsPage() {
                 <h1 className="text-white font-bold text-xl">Ayarlar</h1>
             </div>
 
-            {/* Hesap özeti */}
             <div
                 className="flex items-center gap-3 p-4 border-b border-gray-800 cursor-pointer hover:bg-gray-900/50 transition"
                 onClick={() => navigate(`/profil/${user?.user_metadata?.username}`)}
@@ -75,7 +75,6 @@ function SettingsPage() {
                 <ChevronRight size={18} className="text-gray-500" />
             </div>
 
-            {/* Menü grupları */}
             {menuGroups.map((group) => (
                 <div key={group.title} className="border-b border-gray-800">
                     <p className="text-gray-500 text-xs font-bold uppercase tracking-wide px-4 pt-4 pb-1">
@@ -98,10 +97,9 @@ function SettingsPage() {
                 </div>
             ))}
 
-            {/* Çıkış yap */}
             <div className="border-b border-gray-800">
                 <button
-                    onClick={handleLogout}
+                    onClick={() => setShowLogoutModal(true)}
                     className="flex items-center gap-3 w-full px-4 py-3.5 hover:bg-gray-900/50 transition text-left"
                 >
                     <LogOut size={20} className="text-gray-400 shrink-0" />
@@ -109,7 +107,6 @@ function SettingsPage() {
                 </button>
             </div>
 
-            {/* Tehlikeli bölge */}
             <div className="p-4">
                 <button
                     onClick={() => navigate('/ayarlar/hesabi-sil')}
@@ -119,6 +116,34 @@ function SettingsPage() {
                     <span className="text-red-400 text-sm font-medium flex-1">Hesabımı sil</span>
                 </button>
             </div>
+
+            {showLogoutModal && (
+                <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center px-4">
+                    <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-xs p-6 text-center">
+                        <div className="w-14 h-14 rounded-full bg-red-950/40 flex items-center justify-center mx-auto mb-4">
+                            <LogOut size={24} className="text-red-400" />
+                        </div>
+                        <h3 className="text-white font-bold text-lg mb-1">Çıkış yap</h3>
+                        <p className="text-gray-400 text-sm mb-6">Hesabından çıkış yapmak istediğine emin misin?</p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setShowLogoutModal(false)}
+                                disabled={loggingOut}
+                                className="flex-1 border border-gray-700 text-white text-sm font-bold py-2.5 rounded-xl hover:bg-gray-800 transition disabled:opacity-50"
+                            >
+                                Vazgeç
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                disabled={loggingOut}
+                                className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2.5 rounded-xl transition disabled:opacity-50"
+                            >
+                                {loggingOut ? 'Çıkılıyor...' : 'Çıkış Yap'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
