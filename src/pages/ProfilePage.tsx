@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
+import { convertIfHeic, resizeImage } from '../utils/imageHelpers'
 import PostCard from '../components/PostCard'
 import { StoryViewer } from '../components/StoryViewer'
-import { Settings } from 'lucide-react'
+import { Settings, Image as ImageIcon, X } from 'lucide-react'
 
 function ProfilePage() {
     const navigate = useNavigate()
     const { username } = useParams()
-    const { user } = useAuth()
+    const { user, profile: myProfile } = useAuth()
+    const { showToast } = useToast()
     const [profile, setProfile] = useState<any>(null)
     const [posts, setPosts] = useState<any[]>([])
     const [followerCount, setFollowerCount] = useState(0)
@@ -19,6 +22,13 @@ function ProfilePage() {
     const [isBlocked, setIsBlocked] = useState(false)
     const [blockedByThem, setBlockedByThem] = useState(false)
     const [newPost, setNewPost] = useState('')
+
+    // Görsel seçme
+    const [imageFile, setImageFile] = useState<File | null>(null)
+    const [imagePreview, setImagePreview] = useState<string | null>(null)
+    const [converting, setConverting] = useState(false)
+    const [posting, setPosting] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     const [activeStories, setActiveStories] = useState<any[]>([])
     const [showStoryViewer, setShowStoryViewer] = useState(false)
@@ -257,14 +267,65 @@ function ProfilePage() {
         await fetchProfile()
     }
 
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setConverting(true)
+        try {
+            const heicConverted = await convertIfHeic(file)
+            const finalFile = await resizeImage(heicConverted, 1600)
+            setImageFile(finalFile)
+            setImagePreview(URL.createObjectURL(finalFile))
+        } catch (err) {
+            console.error('Resim dönüştürme hatası:', err)
+            showToast('Bu fotoğraf yüklenemedi. Lütfen JPEG veya PNG formatında bir fotoğraf seçin.', 'error')
+        } finally {
+            setConverting(false)
+        }
+    }
+
+    const handleRemoveImage = () => {
+        setImageFile(null)
+        setImagePreview(null)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+
     const handlePost = async () => {
-        if (!newPost.trim()) return
+        if (!newPost.trim() && !imageFile) return
+
+        setPosting(true)
+
+        let imageUrl: string | null = null
+
+        if (imageFile) {
+            const fileExt = imageFile.name.split('.').pop()
+            const filePath = `${user?.id}/${Date.now()}.${fileExt}`
+
+            const { error: uploadError } = await supabase.storage
+                .from('post-images')
+                .upload(filePath, imageFile)
+
+            if (!uploadError) {
+                const { data: urlData } = supabase.storage
+                    .from('post-images')
+                    .getPublicUrl(filePath)
+                imageUrl = urlData.publicUrl
+            }
+        }
 
         await supabase
             .from('posts')
-            .insert({ content: newPost, username: user?.user_metadata?.username })
+            .insert({
+                content: newPost,
+                username: user?.user_metadata?.username,
+                image_url: imageUrl,
+            })
 
         setNewPost('')
+        handleRemoveImage()
+        setPosting(false)
+        showToast('Postun paylaşıldı!', 'success')
 
         const { data: postsData } = await supabase
             .from('posts')
@@ -300,7 +361,7 @@ function ProfilePage() {
 
             <div className="px-6 pb-4">
 
-                <div className="flex justify-between items-end -mt-12 mb-4">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end -mt-12 mb-4 gap-3">
                     <button
                         onClick={handleAvatarClick}
                         disabled={!hasActiveStories}
@@ -313,7 +374,7 @@ function ProfilePage() {
                         )}
                     </button>
 
-                    <div className="flex gap-2 mt-14">
+                    <div className="flex gap-2 mt-2 sm:mt-14 flex-wrap">
                         {isOwnProfile ? (
                             <>
                                 <button
@@ -383,7 +444,11 @@ function ProfilePage() {
                 <>
                     {isOwnProfile && (
                         <div className="flex gap-3 p-4 border-b border-gray-800">
-                            <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
+                            {myProfile?.avatar_url ? (
+                                <img src={myProfile.avatar_url} alt="avatar" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                            ) : (
+                                <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
+                            )}
                             <div className="flex-1">
                                 <textarea
                                     placeholder="Ne düşünüyorsun?"
@@ -392,11 +457,46 @@ function ProfilePage() {
                                     value={newPost}
                                     onChange={(e) => setNewPost(e.target.value)}
                                 />
-                                <div className="flex justify-end mt-2">
+
+                                {imagePreview && (
+                                    <div className="relative mt-2 rounded-2xl overflow-hidden border border-gray-700 w-fit">
+                                        <img src={imagePreview} alt="önizleme" className="max-h-64 object-cover" />
+                                        <button
+                                            onClick={handleRemoveImage}
+                                            className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1.5 hover:bg-black transition"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {converting && (
+                                    <p className="text-gray-500 text-sm mt-2 animate-pulse">Fotoğraf işleniyor...</p>
+                                )}
+
+                                <div className="flex items-center justify-between mt-2">
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={converting}
+                                        className="text-purple-400 hover:text-purple-300 transition p-2 rounded-full hover:bg-gray-900 disabled:opacity-50"
+                                        title="Fotoğraf ekle"
+                                    >
+                                        <ImageIcon size={20} />
+                                    </button>
+
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*,.heic,.heif"
+                                        className="hidden"
+                                        onChange={handleImageChange}
+                                    />
+
                                     <button
                                         onClick={handlePost}
-                                        className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-5 py-2 rounded-xl transition">
-                                        Paylaş
+                                        disabled={posting || converting || (!newPost.trim() && !imageFile)}
+                                        className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-5 py-2 rounded-xl transition disabled:opacity-50">
+                                        {posting ? 'Paylaşılıyor...' : 'Paylaş'}
                                     </button>
                                 </div>
                             </div>
