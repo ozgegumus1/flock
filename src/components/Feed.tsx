@@ -152,6 +152,11 @@ function Feed() {
   const handlePost = async () => {
     if (!newPost.trim() && !imageFile) return
 
+    if (newPost.length > 2000) {
+      showToast('Post en fazla 2000 karakter olabilir.', 'error')
+      return
+    }
+
     setPosting(true)
 
     let imageUrl: string | null = null

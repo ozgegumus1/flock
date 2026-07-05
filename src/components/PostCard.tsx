@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react"
-import { Heart, MessageCircle, Trash2, MoreHorizontal, Pencil } from "lucide-react"
+import { Heart, MessageCircle, Trash2, MoreHorizontal, Pencil, Sticker } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "../supabase"
 import { useAuth } from "../context/AuthContext"
+import { GifPicker } from "./GifPicker"
 
 function formatTimeAgo(dateString?: string): string {
   if (!dateString) return ''
@@ -45,6 +46,8 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
   const [comments, setComments] = useState<any[]>([])
   const [commentCount, setCommentCount] = useState(0)
   const [newComment, setNewComment] = useState('')
+  const [pendingGif, setPendingGif] = useState<string | null>(null)
+  const [showGifPicker, setShowGifPicker] = useState(false)
   const [loadingComments, setLoadingComments] = useState(false)
   const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null)
 
@@ -120,7 +123,12 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
 
   const handleAddComment = async (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!newComment.trim()) return
+    if (!newComment.trim() && !pendingGif) return
+
+    if (newComment.length > 500) {
+      alert('Yorum en fazla 500 karakter olabilir.')
+      return
+    }
 
     const { data: inserted } = await supabase
       .from('comments')
@@ -129,6 +137,7 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
         user_id: user?.id,
         username: user?.user_metadata?.username,
         content: newComment.trim(),
+        gif_url: pendingGif,
       })
       .select()
       .single()
@@ -138,6 +147,12 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
       setCommentCount((c) => c + 1)
     }
     setNewComment('')
+    setPendingGif(null)
+  }
+
+  const handleSelectGif = (gifUrl: string) => {
+    setPendingGif(gifUrl)
+    setShowGifPicker(false)
   }
 
   const handleDeleteComment = async (e: React.MouseEvent, commentId: string) => {
@@ -344,7 +359,28 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
 
       {showComments && (
         <div className="px-4 pb-4 pl-16" onClick={(e) => e.stopPropagation()}>
+
+          {pendingGif && (
+            <div className="relative mb-2 w-fit">
+              <img src={pendingGif} alt="seçilen gif" className="h-28 rounded-xl border border-gray-700" />
+              <button
+                onClick={() => setPendingGif(null)}
+                className="absolute -top-2 -right-2 bg-gray-900 border border-gray-700 text-white rounded-full p-1 hover:bg-gray-800 transition"
+              >
+                <MoreHorizontal size={0} className="hidden" />
+                ✕
+              </button>
+            </div>
+          )}
+
           <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => setShowGifPicker(true)}
+              className="text-purple-400 hover:text-purple-300 transition p-2 rounded-full hover:bg-gray-900 shrink-0"
+              title="GIF ekle"
+            >
+              <Sticker size={20} />
+            </button>
             <input
               type="text"
               placeholder="Yorum yaz..."
@@ -353,6 +389,7 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleAddComment(e as any)
               }}
+              maxLength={500}
               className="flex-1 bg-gray-900 border border-gray-700 rounded-full px-4 py-2 text-sm text-white outline-none focus:border-purple-500 transition"
             />
             <button
@@ -399,7 +436,16 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
                           </button>
                         )}
                       </div>
-                      <p className="text-gray-200 text-sm mt-0.5">{comment.content}</p>
+                      {comment.content && (
+                        <p className="text-gray-200 text-sm mt-0.5">{comment.content}</p>
+                      )}
+                      {comment.gif_url && (
+                        <img
+                          src={comment.gif_url}
+                          alt="gif"
+                          className="mt-1.5 rounded-lg max-h-40 border border-gray-800"
+                        />
+                      )}
                     </div>
 
                     {isMine && openCommentMenuId === comment.id && (
@@ -419,6 +465,13 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
             </div>
           )}
         </div>
+      )}
+
+      {showGifPicker && (
+        <GifPicker
+          onSelect={handleSelectGif}
+          onClose={() => setShowGifPicker(false)}
+        />
       )}
     </div>
   )

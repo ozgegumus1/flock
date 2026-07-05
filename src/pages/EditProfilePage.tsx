@@ -116,7 +116,12 @@ function EditProfilePage() {
         }
     }
 
-    const handleSave = async () => {
+ const handleSave = async () => {
+        if (bio.length > 250) {
+            showToast('Biyografi en fazla 250 karakter olabilir.', 'error')
+            return
+        }
+
         setLoading(true)
 
         let newAvatarUrl = avatarUrl
