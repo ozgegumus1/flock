@@ -19,6 +19,7 @@ function ProfilePage() {
     const [followingCount, setFollowingCount] = useState(0)
     const [isFollowing, setIsFollowing] = useState(false)
     const [isPending, setIsPending] = useState(false)
+    const [followsMe, setFollowsMe] = useState(false)
     const [isBlocked, setIsBlocked] = useState(false)
     const [blockedByThem, setBlockedByThem] = useState(false)
     const [newPost, setNewPost] = useState('')
@@ -130,8 +131,18 @@ function ProfilePage() {
             .eq('following_id', profileData?.id)
             .single()
 
-        setIsFollowing(followData?.status === 'accepted')
+    setIsFollowing(followData?.status === 'accepted')
         setIsPending(followData?.status === 'pending')
+
+        const { data: theyFollowMe } = await supabase
+            .from('follows')
+            .select('*')
+            .eq('follower_id', profileData?.id)
+            .eq('following_id', user?.id)
+            .eq('status', 'accepted')
+            .single()
+
+        setFollowsMe(!!theyFollowMe)
     }
 
     const handleAvatarClick = () => {
@@ -415,7 +426,14 @@ function ProfilePage() {
                     </div>
                 </div>
 
-                <h1 className="text-white font-bold text-xl">{profile.full_name || profile.username}</h1>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-white font-bold text-xl">{profile.full_name || profile.username}</h1>
+                    {!isOwnProfile && followsMe && (
+                        <span className="text-gray-400 text-xs border border-gray-700 rounded-full px-2 py-0.5">
+                            Seni takip ediyor
+                        </span>
+                    )}
+                </div>
                 <p className="text-gray-400 text-sm">@{profile.username}</p>
                 {profile.bio && <p className="text-white mt-3">{profile.bio}</p>}
 
