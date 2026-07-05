@@ -17,13 +17,23 @@ function RegisterPage() {
             return
         }
 
+        if (!/^[a-zA-Z0-9_]{3,20}$/.test(username.trim())) {
+            showToast('Kullanıcı adı 3-20 karakter olmalı, sadece harf, rakam ve alt çizgi (_) içerebilir.', 'error')
+            return
+        }
+
+        if (password.length < 6) {
+            showToast('Şifre en az 6 karakter olmalı.', 'error')
+            return
+        }
+
         setLoading(true)
 
         const { error } = await supabase.auth.signUp({
             email,
             password,
             options: {
-                data: { username }
+                data: { username: username.trim() }
             }
         })
 

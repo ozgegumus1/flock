@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 
 function RightPanel() {
     const { user } = useAuth()
+    const { showToast } = useToast()
     const navigate = useNavigate()
     const location = useLocation()
     const [suggestions, setSuggestions] = useState<any[]>([])
@@ -25,7 +27,7 @@ function RightPanel() {
 
         const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, username, full_name, avatar_url')
+            .select('id, username, full_name, avatar_url, is_private')
             .neq('id', user?.id)
             .limit(10)
 
@@ -33,19 +35,25 @@ function RightPanel() {
         setSuggestions(filtered.slice(0, 3))
     }
 
-    const handleFollow = async (e: React.MouseEvent, profileId: string) => {
+    const handleFollow = async (e: React.MouseEvent, profile: any) => {
         e.stopPropagation()
+
+        const status = profile.is_private ? 'pending' : 'accepted'
 
         await supabase
             .from('follows')
-            .insert({ follower_id: user?.id, following_id: profileId })
+            .insert({ follower_id: user?.id, following_id: profile.id, status })
 
-        setSuggestions((prev) => prev.filter((p) => p.id !== profileId))
+        showToast(
+            profile.is_private ? 'Takip isteği gönderildi' : 'Takip etmeye başladın',
+            'success'
+        )
+
+        setSuggestions((prev) => prev.filter((p) => p.id !== profile.id))
     }
 
     return (
         <div className="w-80 min-h-screen bg-gray-900 flex flex-col p-4">
-            {/* Gündemde - sadece Keşfet sayfasında */}
             {showTrending && (
                 <div className="bg-gray-800 rounded-2xl p-4 mb-4">
                     <h2 className="text-white font-bold text-xl mb-4">Gündemde</h2>
@@ -69,7 +77,6 @@ function RightPanel() {
                 </div>
             )}
 
-            {/* Tanıyor olabilirsin */}
             <div className="bg-gray-800 rounded-2xl p-4">
                 <h2 className="text-white font-bold text-xl mb-4">Tanıyor olabilirsin</h2>
                 <div className="flex flex-col gap-3">
@@ -94,10 +101,10 @@ function RightPanel() {
                                     <p className="text-gray-400 text-xs">@{profile.username}</p>
                                 </div>
                                 <button
-                                    onClick={(e) => handleFollow(e, profile.id)}
+                                    onClick={(e) => handleFollow(e, profile)}
                                     className="bg-white text-black text-xs font-bold px-3 py-1 rounded-full hover:bg-gray-200 transition shrink-0"
                                 >
-                                    Takip Et
+                                    {profile.is_private ? 'İstek Gönder' : 'Takip Et'}
                                 </button>
                             </div>
                         ))
