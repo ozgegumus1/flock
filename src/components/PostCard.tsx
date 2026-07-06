@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Heart, MessageCircle, Trash2, MoreHorizontal, Pencil, Sticker } from "lucide-react"
+import { Heart, MessageCircle, Trash2, MoreHorizontal, Pencil, Sticker, Flag, Check } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "../supabase"
 import { useAuth } from "../context/AuthContext"
@@ -50,6 +50,10 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
   const [showGifPicker, setShowGifPicker] = useState(false)
   const [loadingComments, setLoadingComments] = useState(false)
   const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null)
+  const [commentLikes, setCommentLikes] = useState<Record<string, { count: number; liked: boolean }>>({})
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editCommentText, setEditCommentText] = useState('')
+  const [reportingCommentId, setReportingCommentId] = useState<string | null>(null)
 
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -102,7 +106,7 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
     setCommentCount(count ?? 0)
   }
 
-  const fetchComments = async () => {
+ const fetchComments = async () => {
     setLoadingComments(true)
     const { data } = await supabase
       .from('comments')
@@ -111,7 +115,72 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
       .order('created_at', { ascending: true })
 
     setComments(data ?? [])
+
+    if (data && data.length > 0) {
+      const commentIds = data.map((c: any) => c.id)
+      const { data: likesData } = await supabase
+        .from('comment_likes')
+        .select('comment_id, user_id')
+        .in('comment_id', commentIds)
+
+      const map: Record<string, { count: number; liked: boolean }> = {}
+      commentIds.forEach((id: string) => { map[id] = { count: 0, liked: false } })
+      ;(likesData ?? []).forEach((l: any) => {
+        map[l.comment_id].count += 1
+        if (l.user_id === user?.id) map[l.comment_id].liked = true
+      })
+      setCommentLikes(map)
+    }
+
     setLoadingComments(false)
+  }
+
+  const handleToggleCommentLike = async (e: React.MouseEvent, commentId: string) => {
+    e.stopPropagation()
+    const current = commentLikes[commentId] ?? { count: 0, liked: false }
+
+    if (current.liked) {
+      await supabase.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', user?.id)
+      setCommentLikes((prev) => ({ ...prev, [commentId]: { count: current.count - 1, liked: false } }))
+    } else {
+      await supabase.from('comment_likes').insert({ comment_id: commentId, user_id: user?.id })
+      setCommentLikes((prev) => ({ ...prev, [commentId]: { count: current.count + 1, liked: true } }))
+    }
+  }
+
+  const handleStartEditComment = (e: React.MouseEvent, comment: any) => {
+    e.stopPropagation()
+    setOpenCommentMenuId(null)
+    setEditingCommentId(comment.id)
+    setEditCommentText(comment.content ?? '')
+  }
+
+  const handleSaveEditComment = async (e: React.MouseEvent, commentId: string) => {
+    e.stopPropagation()
+    if (!editCommentText.trim()) return
+
+    await supabase
+      .from('comments')
+      .update({ content: editCommentText.trim(), edited_at: new Date().toISOString() })
+      .eq('id', commentId)
+      .eq('user_id', user?.id)
+
+    setComments((prev) => prev.map((c) =>
+      c.id === commentId ? { ...c, content: editCommentText.trim(), edited_at: new Date().toISOString() } : c
+    ))
+    setEditingCommentId(null)
+  }
+
+  const handleReportComment = async (reason: string) => {
+    if (!reportingCommentId) return
+
+    await supabase.from('comment_reports').insert({
+      comment_id: reportingCommentId,
+      reporter_id: user?.id,
+      reason,
+    })
+
+    setReportingCommentId(null)
   }
 
   const handleToggleComments = (e: React.MouseEvent) => {
@@ -408,55 +477,120 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
             <div className="flex flex-col gap-2">
               {comments.map((comment: any) => {
                 const isMine = comment.user_id === user?.id
+                const likeInfo = commentLikes[comment.id] ?? { count: 0, liked: false }
+                const isEditingThis = editingCommentId === comment.id
+
                 return (
-                  <div key={comment.id} className="relative flex items-start gap-2">
-                    <div className="flex-1 bg-gray-900 rounded-2xl px-3 py-2">
+                  <div key={comment.id} className="relative flex items-start gap-2 min-w-0">
+                    <div className="flex-1 bg-gray-900 rounded-2xl px-3 py-2 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
                           <span
                             onClick={() => navigate(`/profil/${comment.username}`)}
-                            className="text-white font-bold text-xs cursor-pointer hover:underline"
+                            className="text-white font-bold text-xs cursor-pointer hover:underline shrink-0"
                           >
                             {comment.username}
                           </span>
-                          <span className="text-gray-500 text-xs">{formatTimeAgo(comment.created_at)}</span>
+                          <span className="text-gray-500 text-xs shrink-0">{formatTimeAgo(comment.created_at)}</span>
+                          {comment.edited_at && (
+                            <span className="text-gray-600 text-[10px] shrink-0">(düzenlendi)</span>
+                          )}
                         </div>
 
-                        {isMine && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpenCommentMenuId(
+                              openCommentMenuId === comment.id ? null : comment.id
+                            )
+                          }}
+                          className="text-gray-500 hover:text-white transition shrink-0"
+                        >
+                          <MoreHorizontal size={14} />
+                        </button>
+                      </div>
+
+                      {isEditingThis ? (
+                        <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="text"
+                            value={editCommentText}
+                            onChange={(e) => setEditCommentText(e.target.value)}
+                            maxLength={500}
+                            className="w-full bg-gray-800 border border-purple-500 rounded-lg px-2 py-1 text-sm text-white outline-none"
+                            autoFocus
+                          />
+                          <div className="flex justify-end gap-2 mt-1">
+                            <button
+                              onClick={() => setEditingCommentId(null)}
+                              className="text-gray-400 hover:text-white text-xs font-bold px-2 py-1"
+                            >
+                              Vazgeç
+                            </button>
+                            <button
+                              onClick={(e) => handleSaveEditComment(e, comment.id)}
+                              className="text-purple-400 hover:text-purple-300 text-xs font-bold px-2 py-1"
+                            >
+                              Kaydet
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {comment.content && (
+                            <p className="text-gray-200 text-sm mt-0.5 break-words">{comment.content}</p>
+                          )}
+                          {comment.gif_url && (
+                            <img
+                              src={comment.gif_url}
+                              alt="gif"
+                              className="mt-1.5 rounded-lg max-h-40 max-w-full border border-gray-800"
+                            />
+                          )}
+                        </>
+                      )}
+
+                      <button
+                        onClick={(e) => handleToggleCommentLike(e, comment.id)}
+                        className={`flex items-center gap-1 mt-1.5 text-xs transition ${likeInfo.liked ? 'text-pink-500' : 'text-gray-500 hover:text-pink-400'}`}
+                      >
+                        <Heart size={13} fill={likeInfo.liked ? 'currentColor' : 'none'} />
+                        {likeInfo.count > 0 && likeInfo.count}
+                      </button>
+                    </div>
+
+                    {openCommentMenuId === comment.id && (
+                      <div className="absolute right-0 top-6 bg-gray-900 border border-gray-700 rounded-xl shadow-lg overflow-hidden z-20 min-w-[140px]">
+                        {isMine ? (
+                          <>
+                            <button
+                              onClick={(e) => handleStartEditComment(e, comment)}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-xs text-white hover:bg-gray-800 transition text-left"
+                            >
+                              <Pencil size={13} />
+                              Düzenle
+                            </button>
+                            <button
+                              onClick={(e) => handleDeleteComment(e, comment.id)}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-400 hover:bg-gray-800 transition text-left"
+                            >
+                              <Trash2 size={13} />
+                              Yorumu sil
+                            </button>
+                          </>
+                        ) : (
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              setOpenCommentMenuId(
-                                openCommentMenuId === comment.id ? null : comment.id
-                              )
+                              setOpenCommentMenuId(null)
+                              setReportingCommentId(comment.id)
                             }}
-                            className="text-gray-500 hover:text-white transition shrink-0"
+                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-orange-400 hover:bg-gray-800 transition text-left"
                           >
-                            <MoreHorizontal size={14} />
+                            <Flag size={13} />
+                            Şikayet et
                           </button>
                         )}
-                      </div>
-                      {comment.content && (
-                        <p className="text-gray-200 text-sm mt-0.5">{comment.content}</p>
-                      )}
-                      {comment.gif_url && (
-                        <img
-                          src={comment.gif_url}
-                          alt="gif"
-                          className="mt-1.5 rounded-lg max-h-40 border border-gray-800"
-                        />
-                      )}
-                    </div>
-
-                    {isMine && openCommentMenuId === comment.id && (
-                      <div className="absolute right-0 top-6 bg-gray-900 border border-gray-700 rounded-xl shadow-lg overflow-hidden z-20 min-w-[120px]">
-                        <button
-                          onClick={(e) => handleDeleteComment(e, comment.id)}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-400 hover:bg-gray-800 transition text-left"
-                        >
-                          <Trash2 size={13} />
-                          Yorumu sil
-                        </button>
                       </div>
                     )}
                   </div>
@@ -472,6 +606,35 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
           onSelect={handleSelectGif}
           onClose={() => setShowGifPicker(false)}
         />
+      )}
+
+      {reportingCommentId && (
+        <div
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center px-4"
+          onClick={() => setReportingCommentId(null)}
+        >
+          <div
+            className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-xs p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-white font-bold mb-3">Yorumu şikayet et</h3>
+            {['Spam', 'Taciz veya nefret söylemi', 'Uygunsuz içerik', 'Diğer'].map((reason) => (
+              <button
+                key={reason}
+                onClick={() => handleReportComment(reason)}
+                className="flex items-center justify-between w-full px-3 py-2.5 text-sm text-white hover:bg-gray-800 rounded-lg transition text-left"
+              >
+                {reason}
+              </button>
+            ))}
+            <button
+              onClick={() => setReportingCommentId(null)}
+              className="w-full mt-2 text-gray-400 text-sm font-bold py-2"
+            >
+              Vazgeç
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
