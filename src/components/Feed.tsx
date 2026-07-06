@@ -32,7 +32,7 @@ function Feed() {
   const [posts, setPosts] = useState<any[]>([])
   const [avatarMap, setAvatarMap] = useState<Record<string, string>>({})
   const [newPost, setNewPost] = useState('')
-  const [blockedUsernames, setBlockedUsernames] = useState<string[]>([])
+  const [visibleUsernames, setVisibleUsernames] = useState<string[]>([])
 
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
@@ -62,48 +62,64 @@ function Feed() {
     })
   }
 
+  // İlk yükleme: takip edilen kişileri + kendini belirle, engellenenleri çıkar
   const initFeed = async () => {
+    const { data: followData } = await supabase
+      .from('follows')
+      .select('following_id')
+      .eq('follower_id', user?.id)
+      .eq('status', 'accepted')
+
+    const followedIds = (followData ?? []).map((f: any) => f.following_id)
+    const visibleIds = [...new Set([...followedIds, user?.id])]
+
     const { data: blocksData } = await supabase
       .from('blocks')
       .select('blocked_id, blocker_id')
       .or(`blocker_id.eq.${user?.id},blocked_id.eq.${user?.id}`)
 
-    const blockedIds = (blocksData ?? []).map((b: any) =>
-      b.blocker_id === user?.id ? b.blocked_id : b.blocker_id
+    const blockedIds = new Set(
+      (blocksData ?? []).map((b: any) =>
+        b.blocker_id === user?.id ? b.blocked_id : b.blocker_id
+      )
     )
 
+    const finalIds = visibleIds.filter((id) => !blockedIds.has(id))
+
     let usernames: string[] = []
-    if (blockedIds.length > 0) {
-      const { data: blockedProfiles } = await supabase
+    if (finalIds.length > 0) {
+      const { data: visibleProfiles } = await supabase
         .from('profiles')
         .select('username')
-        .in('id', blockedIds)
-      usernames = (blockedProfiles ?? []).map((p: any) => p.username)
+        .in('id', finalIds)
+      usernames = (visibleProfiles ?? []).map((p: any) => p.username)
     }
 
-    setBlockedUsernames(usernames)
+    setVisibleUsernames(usernames)
     await loadPage(0, usernames)
     setInitialLoading(false)
   }
 
-  const loadPage = async (pageNum: number, blockedList: string[]) => {
+  const loadPage = async (pageNum: number, usernames: string[]) => {
+    if (usernames.length === 0) {
+      setPosts([])
+      setHasMore(false)
+      setLoadingMore(false)
+      return
+    }
+
     if (pageNum === 0) setLoadingMore(false)
     else setLoadingMore(true)
 
     const from = pageNum * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
-    let query = supabase
+    const { data } = await supabase
       .from('posts')
       .select('*')
+      .in('username', usernames)
       .order('created_at', { ascending: false })
       .range(from, to)
-
-    if (blockedList.length > 0) {
-      query = query.not('username', 'in', `(${blockedList.map((u: string) => `"${u}"`).join(',')})`)
-    }
-
-    const { data } = await query
 
     const newPosts = data ?? []
 
@@ -112,17 +128,17 @@ function Feed() {
     setPage(pageNum)
     setLoadingMore(false)
 
-    const usernames = [...new Set(newPosts.map((p: any) => p.username))]
-    fetchAvatarsFor(usernames)
+    const postUsernames = [...new Set(newPosts.map((p: any) => p.username))]
+    fetchAvatarsFor(postUsernames)
   }
 
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return
-    loadPage(page + 1, blockedUsernames)
-  }, [page, hasMore, loadingMore, blockedUsernames])
+    loadPage(page + 1, visibleUsernames)
+  }, [page, hasMore, loadingMore, visibleUsernames])
 
   const refreshFeed = () => {
-    loadPage(0, blockedUsernames)
+    loadPage(0, visibleUsernames)
   }
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,7 +228,7 @@ function Feed() {
   }, [loadMore])
 
   return (
-    <div className="flex-1 min-h-screen border-x border-gray-800">
+    <div className="flex-1 min-h-screen border-x border-gray-800 max-w-full overflow-x-hidden">
 
       <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800">
         <h1 className="text-white font-bold text-xl">Anasayfa</h1>
@@ -226,7 +242,7 @@ function Feed() {
         ) : (
           <div className="w-10 h-10 rounded-full bg-purple-500 shrink-0" />
         )}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <textarea
             placeholder="Ne düşünüyorsun?"
             className="w-full bg-transparent text-white placeholder-gray-500 text-lg resize-none outline-none"
@@ -236,8 +252,8 @@ function Feed() {
           />
 
           {imagePreview && (
-            <div className="relative mt-2 rounded-2xl overflow-hidden border border-gray-700 w-fit">
-              <img src={imagePreview} alt="önizleme" className="max-h-64 object-cover" />
+            <div className="relative mt-2 rounded-2xl overflow-hidden border border-gray-700 w-fit max-w-full">
+              <img src={imagePreview} alt="önizleme" className="max-h-64 max-w-full object-cover" />
               <button
                 onClick={handleRemoveImage}
                 className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1.5 hover:bg-black transition"
@@ -287,8 +303,8 @@ function Feed() {
         </>
       ) : posts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center px-6">
-          <p className="text-white font-bold">Henüz post yok</p>
-          <p className="text-gray-500 text-sm mt-1">İlk paylaşımı sen yap!</p>
+          <p className="text-white font-bold">Henüz gösterecek post yok</p>
+          <p className="text-gray-500 text-sm mt-1">Birilerini takip et, postları burada görünsün!</p>
         </div>
       ) : (
         posts.map((post: any) => (
