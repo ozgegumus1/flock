@@ -38,7 +38,6 @@ function Feed() {
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
-  const sentinelRef = useRef<HTMLDivElement>(null)
 
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
