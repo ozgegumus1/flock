@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Heart, MessageCircle, Trash2, MoreHorizontal, Pencil, Sticker, Flag, Check } from "lucide-react"
+import { Heart, MessageCircle, Trash2, MoreHorizontal, Pencil, Sticker, Flag } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "../supabase"
 import { useAuth } from "../context/AuthContext"
