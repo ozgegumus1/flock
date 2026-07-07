@@ -137,6 +137,8 @@ function Feed() {
     loadPage(page + 1, visibleUsernames)
   }, [page, hasMore, loadingMore, visibleUsernames])
 
+  // (IntersectionObserver kaldırıldı, aşağıda buton ile değiştirildi)
+
   const refreshFeed = () => {
     loadPage(0, visibleUsernames)
   }
@@ -212,20 +214,6 @@ function Feed() {
     initFeed()
   }, [])
 
-  useEffect(() => {
-    const el = sentinelRef.current
-    if (!el) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) loadMore()
-      },
-      { rootMargin: '400px' }
-    )
-
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [loadMore])
 
   return (
     <div className="flex-1 min-h-screen border-x border-gray-800 max-w-full overflow-x-hidden">
@@ -322,11 +310,15 @@ function Feed() {
         ))
       )}
 
-      {hasMore && !initialLoading && (
-        <div ref={sentinelRef} className="py-6 flex justify-center">
-          {loadingMore && (
-            <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-          )}
+    {hasMore && !initialLoading && (
+        <div className="py-6 flex justify-center">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="bg-gray-900 border border-gray-800 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2 rounded-full transition disabled:opacity-50"
+          >
+            {loadingMore ? 'Yükleniyor...' : 'Daha fazla göster'}
+          </button>
         </div>
       )}
 
