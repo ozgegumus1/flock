@@ -25,7 +25,7 @@ function formatNotifTime(dateString?: string): string {
 }
 
 function NotificationsPage() {
-    const { user } = useAuth()
+    const { user, refreshUnreadNotifications } = useAuth()
     const navigate = useNavigate()
     const [notifications, setNotifications] = useState<any[]>([])
     const [followRequests, setFollowRequests] = useState<any[]>([])
@@ -87,8 +87,9 @@ function NotificationsPage() {
             query = query.in('id', ids)
         }
 
-        await query
+     await query
         setNotifications((prev) => prev.map((n: any) => ({ ...n, is_read: true })))
+        refreshUnreadNotifications?.()
     }
 
     const fetchFollowRequests = async () => {

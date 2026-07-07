@@ -17,7 +17,7 @@ import {
 
 function SettingsPage() {
     const navigate = useNavigate()
-    const { user } = useAuth()
+    const { user, profile } = useAuth()
     const [showLogoutModal, setShowLogoutModal] = useState(false)
     const [loggingOut, setLoggingOut] = useState(false)
 
@@ -67,7 +67,11 @@ function SettingsPage() {
                 className="flex items-center gap-3 p-4 border-b border-gray-800 cursor-pointer hover:bg-gray-900/50 transition"
                 onClick={() => navigate(`/profil/${user?.user_metadata?.username}`)}
             >
-                <div className="w-12 h-12 rounded-full bg-purple-500 shrink-0" />
+                {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="avatar" className="w-12 h-12 rounded-full object-cover shrink-0" />
+                ) : (
+                    <div className="w-12 h-12 rounded-full bg-purple-500 shrink-0" />
+                )}
                 <div className="flex-1 min-w-0">
                     <p className="text-white font-bold text-sm">{user?.user_metadata?.username}</p>
                     <p className="text-gray-400 text-xs">Profili görüntüle</p>

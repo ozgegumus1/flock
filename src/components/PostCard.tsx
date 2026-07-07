@@ -38,9 +38,12 @@ interface PostCardProps {
 function PostCard({ username, handle, content, postId, avatarUrl, onDelete, createdAt, imageUrl }: PostCardProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [liked, setLiked] = useState(false)
+ const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
   const [likePop, setLikePop] = useState(false)
+  const [showLikers, setShowLikers] = useState(false)
+  const [likers, setLikers] = useState<any[]>([])
+  const [loadingLikers, setLoadingLikers] = useState(false)
 
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<any[]>([])
@@ -95,6 +98,30 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
       .single()
 
     setLiked(!!data)
+  }
+
+  const openLikersList = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (likeCount === 0) return
+    setShowLikers(true)
+    setLoadingLikers(true)
+
+    const { data: likesData } = await supabase
+      .from('likes')
+      .select('user_id')
+      .eq('post_id', postId)
+
+    const userIds = (likesData ?? []).map((l: any) => l.user_id)
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url')
+        .in('id', userIds)
+      setLikers(profiles ?? [])
+    } else {
+      setLikers([])
+    }
+    setLoadingLikers(false)
   }
 
   const fetchCommentCount = async () => {
@@ -412,7 +439,9 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
                 fill={liked ? 'currentColor' : 'none'}
                 className={likePop ? 'scale-125 transition-transform duration-150' : 'scale-100 transition-transform duration-150'}
               />
-              <span className="text-sm">{likeCount}</span>
+             <span onClick={openLikersList} className="text-sm hover:underline">
+                {likeCount}
+              </span>
             </div>
 
             <div
@@ -606,6 +635,48 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
           onSelect={handleSelectGif}
           onClose={() => setShowGifPicker(false)}
         />
+      )}
+
+      {showLikers && (
+        <div
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center px-4"
+          onClick={() => setShowLikers(false)}
+        >
+          <div
+            className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm max-h-[70vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
+              <h3 className="text-white font-bold">Beğenenler</h3>
+              <button onClick={() => setShowLikers(false)} className="text-gray-400 hover:text-white transition">✕</button>
+            </div>
+            <div className="overflow-y-auto px-2 py-2">
+              {loadingLikers ? (
+                <p className="text-gray-500 text-sm text-center py-6">Yükleniyor...</p>
+              ) : likers.length === 0 ? (
+                <p className="text-gray-500 text-sm text-center py-6">Henüz kimse beğenmedi.</p>
+              ) : (
+                likers.map((u: any) => (
+                  <div
+                    key={u.id}
+                    onClick={() => { setShowLikers(false); navigate(`/profil/${u.username}`) }}
+                    className="flex items-center gap-3 px-2 py-2.5 hover:bg-gray-800 rounded-xl cursor-pointer transition"
+                  >
+                    {u.avatar_url ? (
+                      <img src={u.avatar_url} alt={u.username} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-purple-500" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-bold text-sm truncate">{u.full_name || u.username}</p>
+                      <p className="text-gray-500 text-xs truncate">@{u.username}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {reportingCommentId && (

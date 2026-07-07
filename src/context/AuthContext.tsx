@@ -19,8 +19,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(data ?? null)
     }
 
-    const refreshProfile = () => {
+   const refreshProfile = () => {
         if (user?.id) fetchProfile(user.id)
+    }
+
+    const refreshUnreadNotifications = () => {
+        if (user?.id) fetchUnreadNotifications(user.id)
     }
 
     const fetchUnreadMessages = async (userId: string) => {
@@ -97,13 +101,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [user?.id])
 
     return (
-        <AuthContext.Provider value={{
+     <AuthContext.Provider value={{
             user,
             profile,
             loading,
             refreshProfile,
             unreadMessages,
             unreadNotifications,
+            refreshUnreadNotifications,
         }}>
             {children}
         </AuthContext.Provider>

@@ -43,7 +43,6 @@ function KesfetPage() {
     const [feedHasMore, setFeedHasMore] = useState(true)
     const [feedLoadingMore, setFeedLoadingMore] = useState(false)
     const [feedInitialLoading, setFeedInitialLoading] = useState(true)
-    const sentinelRef = useRef<HTMLDivElement>(null)
 
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -132,21 +131,6 @@ function KesfetPage() {
         if (feedLoadingMore || !feedHasMore) return
         loadFeedPage(feedPage + 1)
     }, [feedPage, feedHasMore, feedLoadingMore])
-
-    useEffect(() => {
-        const el = sentinelRef.current
-        if (!el) return
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting) loadMoreFeed()
-            },
-            { rootMargin: '400px' }
-        )
-
-        observer.observe(el)
-        return () => observer.disconnect()
-    }, [loadMoreFeed])
 
     const runSearch = async (q: string) => {
         setLoading(true)
@@ -388,11 +372,15 @@ function KesfetPage() {
                         ))
                     )}
 
-                    {feedHasMore && !feedInitialLoading && (
-                        <div ref={sentinelRef} className="py-6 flex justify-center">
-                            {feedLoadingMore && (
-                                <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                            )}
+                  {feedHasMore && !feedInitialLoading && (
+                        <div className="py-6 flex justify-center">
+                            <button
+                                onClick={loadMoreFeed}
+                                disabled={feedLoadingMore}
+                                className="bg-gray-900 border border-gray-800 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2 rounded-full transition disabled:opacity-50"
+                            >
+                                {feedLoadingMore ? 'Yükleniyor...' : 'Daha fazla göster'}
+                            </button>
                         </div>
                     )}
                 </div>
