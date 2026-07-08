@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Heart, MessageCircle, Trash2, MoreHorizontal, Pencil, Sticker, Flag } from "lucide-react"
+import { Heart, MessageCircle, Trash2, MoreHorizontal, Pencil, Sticker, Flag, Bookmark } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "../supabase"
 import { useAuth } from "../context/AuthContext"
@@ -41,9 +41,10 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
  const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
   const [likePop, setLikePop] = useState(false)
-  const [showLikers, setShowLikers] = useState(false)
+ const [showLikers, setShowLikers] = useState(false)
   const [likers, setLikers] = useState<any[]>([])
   const [loadingLikers, setLoadingLikers] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<any[]>([])
@@ -67,10 +68,33 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
 
   const isOwnPost = user?.user_metadata?.username === username
 
-  useEffect(() => {
+useEffect(() => {
     fetchLikes()
     fetchCommentCount()
+    fetchSaved()
   }, [])
+
+  const fetchSaved = async () => {
+    const { data } = await supabase
+      .from('saved_posts')
+      .select('id')
+      .eq('post_id', postId)
+      .eq('user_id', user?.id)
+      .single()
+
+    setSaved(!!data)
+  }
+
+  const handleToggleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (saved) {
+      await supabase.from('saved_posts').delete().eq('post_id', postId).eq('user_id', user?.id)
+      setSaved(false)
+    } else {
+      await supabase.from('saved_posts').insert({ post_id: postId, user_id: user?.id })
+      setSaved(true)
+    }
+  }
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -415,7 +439,21 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
               </div>
             </div>
           ) : (
-            <p className="text-white mt-1">{currentContent}</p>
+            <p className="text-white mt-1 whitespace-pre-wrap break-words">
+              {currentContent.split(/(#[\p{L}\p{N}_]+)/gu).map((part, i) =>
+                part.startsWith('#') ? (
+                  <span
+                    key={i}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/kesfet/hashtag/${part.slice(1)}`) }}
+                    className="text-purple-400 hover:underline cursor-pointer"
+                  >
+                    {part}
+                  </span>
+                ) : (
+                  <span key={i}>{part}</span>
+                )
+              )}
+            </p>
           )}
 
           {imageUrl && (
@@ -451,6 +489,14 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
               <MessageCircle size={18} />
               <span className="text-sm">{commentCount}</span>
             </div>
+
+            <button
+              onClick={handleToggleSave}
+              className={`ml-auto transition ${saved ? 'text-purple-400' : 'text-gray-400 hover:text-purple-400'}`}
+              title={saved ? 'Kaydı kaldır' : 'Kaydet'}
+            >
+              <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
+            </button>
           </div>
         </div>
       </div>

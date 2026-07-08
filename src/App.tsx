@@ -25,6 +25,7 @@ const HelpCenterPage = lazy(() => import("./pages/HelpCenterPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const DeleteAccountPage = lazy(() => import("./pages/DeleteAccountPage"));
 const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
+const SavedPostsPage = lazy(() => import("./pages/SavedPostsPage"));
 
 function FullScreenLoader() {
   return (
@@ -70,6 +71,7 @@ function App () {
           <Route path="/profil/:username" element={<ProfilePage />} />
           <Route path="/profil-duzenle" element={<EditProfilePage />} />
           <Route path="/gonderi/:postId" element={<PostDetailPage />} />
+          <Route path="/kaydedilenler" element={<SavedPostsPage />} />
           <Route path="/bildirimler" element={<NotificationsPage />} />
           <Route path="/mesajlar" element={<MessagesPage />} />
           <Route path="/mesajlar/:username" element={<ChatPage />} />
