@@ -109,8 +109,14 @@ function LoginPage() {
                     Giriş Yap
                 </button>
 
-                <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>
-                    Hesabın yok mu?
+                <p style={{ textAlign: 'center', marginTop: '12px', fontSize: '13px' }}>
+                    <Link to="/sifremi-unuttum" style={{ color: '#a78bfa', cursor: 'pointer', textDecoration: 'none' }}>
+                        Şifremi unuttum
+                    </Link>
+                </p>
+
+                <p style={{ textAlign: 'center', marginTop: '8px', fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>
+                    Hesabın yok mu?{' '}
                     <Link to="/kayit" style={{color: '#a78bfa', cursor: 'pointer', textDecoration: 'none' }}>
                     Kayıt ol
                     </Link>

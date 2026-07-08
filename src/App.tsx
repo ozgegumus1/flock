@@ -4,6 +4,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import Sidebar from "./components/Sidebar";
 import RightPanel from "./components/RightPanel";
 import HomePage from "./pages/HomePage";
@@ -58,6 +60,8 @@ function App () {
     <Routes>
 <Route path="/giris" element={!user ? <LoginPage /> : <Navigate to="/" />} />
 <Route path="/kayit" element={!user ? <RegisterPage /> : <Navigate to="/" />} />
+<Route path="/sifremi-unuttum" element={<ForgotPasswordPage />} />
+<Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
 
 <Route path="/*" element={user ? (
   <PullToRefresh>
