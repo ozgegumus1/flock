@@ -39,8 +39,8 @@ function Feed() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
 
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageFiles, setImageFiles] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [converting, setConverting] = useState(false)
   const [posting, setPosting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -142,32 +142,46 @@ function Feed() {
     loadPage(0, visibleUsernames)
   }
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+ const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []).slice(0, 5 - imageFiles.length)
+    if (files.length === 0) return
 
     setConverting(true)
     try {
-      const heicConverted = await convertIfHeic(file)
-      const finalFile = await resizeImage(heicConverted, 1600)
-      setImageFile(finalFile)
-      setImagePreview(URL.createObjectURL(finalFile))
+      const processed: File[] = []
+      const previews: string[] = []
+
+      for (const file of files) {
+        const heicConverted = await convertIfHeic(file)
+        const finalFile = await resizeImage(heicConverted, 1600)
+        processed.push(finalFile)
+        previews.push(URL.createObjectURL(finalFile))
+      }
+
+      setImageFiles((prev) => [...prev, ...processed])
+      setImagePreviews((prev) => [...prev, ...previews])
     } catch (err) {
       console.error('Resim dönüştürme hatası:', err)
-      showToast('Bu fotoğraf yüklenemedi. Lütfen JPEG veya PNG formatında bir fotoğraf seçin.', 'error')
+      showToast('Bazı fotoğraflar yüklenemedi. Lütfen JPEG veya PNG formatında fotoğraf seçin.', 'error')
     } finally {
       setConverting(false)
     }
   }
 
-  const handleRemoveImage = () => {
-    setImageFile(null)
-    setImagePreview(null)
+  const handleRemoveImage = (index: number) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index))
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleClearAllImages = () => {
+    setImageFiles([])
+    setImagePreviews([])
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const handlePost = async () => {
-    if (!newPost.trim() && !imageFile) return
+  
+   const handlePost = async () => {
+    if (!newPost.trim() && imageFiles.length === 0) return
 
     if (newPost.length > 2000) {
       showToast('Post en fazla 2000 karakter olabilir.', 'error')
@@ -176,21 +190,21 @@ function Feed() {
 
     setPosting(true)
 
-    let imageUrl: string | null = null
+    const uploadedUrls: string[] = []
 
-    if (imageFile) {
-      const fileExt = imageFile.name.split('.').pop()
-      const filePath = `${user?.id}/${Date.now()}.${fileExt}`
+    for (const file of imageFiles) {
+      const fileExt = file.name.split('.').pop()
+      const filePath = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
 
       const { error: uploadError } = await supabase.storage
         .from('post-images')
-        .upload(filePath, imageFile)
+        .upload(filePath, file)
 
       if (!uploadError) {
         const { data: urlData } = supabase.storage
           .from('post-images')
           .getPublicUrl(filePath)
-        imageUrl = urlData.publicUrl
+        uploadedUrls.push(urlData.publicUrl)
       }
     }
 
@@ -199,11 +213,12 @@ function Feed() {
       .insert({
         content: newPost,
         username: user?.user_metadata?.username,
-        image_url: imageUrl,
+        image_url: uploadedUrls[0] ?? null,
+        image_urls: uploadedUrls.length > 0 ? uploadedUrls : null,
       })
 
     setNewPost('')
-    handleRemoveImage()
+    handleClearAllImages()
     setPosting(false)
     refreshFeed()
     showToast('Postun paylaşıldı!', 'success')
@@ -238,15 +253,19 @@ function Feed() {
             onChange={(e) => setNewPost(e.target.value)}
           />
 
-          {imagePreview && (
-            <div className="relative mt-2 rounded-2xl overflow-hidden border border-gray-700 w-fit max-w-full">
-              <img src={imagePreview} alt="önizleme" className="max-h-64 max-w-full object-cover" />
-              <button
-                onClick={handleRemoveImage}
-                className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1.5 hover:bg-black transition"
-              >
-                <X size={16} />
-              </button>
+        {imagePreviews.length > 0 && (
+            <div className="flex gap-2 mt-2 overflow-x-auto pb-1">
+              {imagePreviews.map((preview, index) => (
+                <div key={index} className="relative shrink-0 rounded-2xl overflow-hidden border border-gray-700">
+                  <img src={preview} alt={`önizleme ${index + 1}`} className="h-32 w-32 object-cover" />
+                  <button
+                    onClick={() => handleRemoveImage(index)}
+                    className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-black transition"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
@@ -255,11 +274,11 @@ function Feed() {
           )}
 
           <div className="flex items-center justify-between mt-2">
-            <button
+           <button
               onClick={() => fileInputRef.current?.click()}
-              disabled={converting}
+              disabled={converting || imageFiles.length >= 5}
               className="text-purple-400 hover:text-purple-300 transition p-2 rounded-full hover:bg-gray-900 disabled:opacity-50"
-              title="Fotoğraf ekle"
+              title={imageFiles.length >= 5 ? 'En fazla 5 fotoğraf' : 'Fotoğraf ekle'}
             >
               <Image size={20} />
             </button>
@@ -268,13 +287,14 @@ function Feed() {
               ref={fileInputRef}
               type="file"
               accept="image/*,.heic,.heif"
+              multiple
               className="hidden"
               onChange={handleImageChange}
             />
 
             <button
               onClick={handlePost}
-              disabled={posting || converting || (!newPost.trim() && !imageFile)}
+              disabled={posting || converting || (!newPost.trim() && imageFiles.length === 0)}
               className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-5 py-2 rounded-xl transition disabled:opacity-50">
               {posting ? 'Paylaşılıyor...' : 'Paylaş'}
             </button>
@@ -302,6 +322,7 @@ function Feed() {
             handle={`@${post.username}`}
             content={post.content}
             imageUrl={post.image_url}
+            imageUrls={post.image_urls}
             avatarUrl={avatarMap[post.username]}
             createdAt={post.created_at}
             onDelete={(deletedId) => setPosts((prev) => prev.filter((p) => p.id !== deletedId))}

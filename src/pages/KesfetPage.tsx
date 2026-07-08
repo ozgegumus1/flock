@@ -365,6 +365,7 @@ function KesfetPage() {
                                 handle={`@${post.username}`}
                                 content={post.content}
                                 imageUrl={post.image_url}
+                imageUrls={post.image_urls}
                                 avatarUrl={avatarMap[post.username]}
                                 createdAt={post.created_at}
                                 onDelete={(deletedId) => setFeedPosts((prev) => prev.filter((p) => p.id !== deletedId))}

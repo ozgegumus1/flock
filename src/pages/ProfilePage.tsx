@@ -544,6 +544,7 @@ function ProfilePage() {
                                     handle={`@${post.username}`}
                                     content={post.content}
                                     imageUrl={post.image_url}
+                imageUrls={post.image_urls}
                                     avatarUrl={profile.avatar_url}
                                     createdAt={post.created_at}
                                     onDelete={(deletedId) => setPosts((prev) => prev.filter((p) => p.id !== deletedId))}

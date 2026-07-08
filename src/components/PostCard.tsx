@@ -33,9 +33,10 @@ interface PostCardProps {
   onDelete?: (postId: string) => void
   createdAt?: string
   imageUrl?: string | null
+  imageUrls?: string[] | null
 }
 
-function PostCard({ username, handle, content, postId, avatarUrl, onDelete, createdAt, imageUrl }: PostCardProps) {
+function PostCard({ username, handle, content, postId, avatarUrl, onDelete, createdAt, imageUrl, imageUrls }: PostCardProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
  const [liked, setLiked] = useState(false)
@@ -45,6 +46,7 @@ function PostCard({ username, handle, content, postId, avatarUrl, onDelete, crea
   const [likers, setLikers] = useState<any[]>([])
   const [loadingLikers, setLoadingLikers] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [carouselIndex, setCarouselIndex] = useState(0)
 
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<any[]>([])
@@ -456,16 +458,66 @@ useEffect(() => {
             </p>
           )}
 
-          {imageUrl && (
-            <div className="mt-2 rounded-2xl overflow-hidden border border-gray-800">
-              <img
-                src={imageUrl}
-                alt="post görseli"
-                className="w-full max-h-96 object-cover"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-          )}
+         {(() => {
+            const images = imageUrls && imageUrls.length > 0 ? imageUrls : (imageUrl ? [imageUrl] : [])
+            if (images.length === 0) return null
+
+            if (images.length === 1) {
+              return (
+                <div className="mt-2 rounded-2xl overflow-hidden border border-gray-800">
+                  <img
+                    src={images[0]}
+                    alt="post görseli"
+                    className="w-full max-h-96 object-cover"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              )
+            }
+
+            return (
+              <div className="mt-2 relative" onClick={(e) => e.stopPropagation()}>
+                <div className="rounded-2xl overflow-hidden border border-gray-800">
+                  <img
+                    src={images[carouselIndex]}
+                    alt={`post görseli ${carouselIndex + 1}`}
+                    className="w-full max-h-96 object-cover"
+                  />
+                </div>
+
+                {carouselIndex > 0 && (
+                  <button
+                    onClick={() => setCarouselIndex((i) => i - 1)}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80 transition"
+                  >
+                    <MoreHorizontal size={0} className="hidden" />
+                    ‹
+                  </button>
+                )}
+                {carouselIndex < images.length - 1 && (
+                  <button
+                    onClick={() => setCarouselIndex((i) => i + 1)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80 transition"
+                  >
+                    ›
+                  </button>
+                )}
+
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  {images.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-1.5 h-1.5 rounded-full transition ${i === carouselIndex ? 'bg-white' : 'bg-white/40'}`}
+                    />
+                  ))}
+                </div>
+
+                <div className="absolute top-2 right-2 bg-black/60 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {carouselIndex + 1}/{images.length}
+                </div>
+              </div>
+            )
+          })()}
 
           <div className="flex items-center gap-5 mt-3">
             <div

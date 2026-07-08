@@ -69,6 +69,7 @@ function PostDetailPage() {
                     handle={`@${post.username}`}
                     content={post.content}
                     imageUrl={post.image_url}
+                imageUrls={post.image_urls}
                     avatarUrl={avatarUrl}
                     createdAt={post.created_at}
                     onDelete={() => navigate('/')}
