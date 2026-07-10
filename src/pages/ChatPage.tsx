@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
-import { MoreVertical, Trash2, Send, Image as ImageIcon } from 'lucide-react'
+import { MoreVertical, Trash2, Send, Image as ImageIcon, X } from 'lucide-react'
+import { convertIfHeic, resizeImage } from '../utils/imageHelpers'
 
 function formatMessageTime(dateString: string): string {
     const date = new Date(dateString)
@@ -33,6 +34,10 @@ function ChatPage() {
     const [sending, setSending] = useState(false)
     const [openMenuId, setOpenMenuId] = useState<string | null>(null)
     const [isOtherTyping, setIsOtherTyping] = useState(false)
+    const [imageFile, setImageFile] = useState<File | null>(null)
+    const [imagePreview, setImagePreview] = useState<string | null>(null)
+    const [converting, setConverting] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     const bottomRef = useRef<HTMLDivElement>(null)
     const menuRef = useRef<HTMLDivElement>(null)
@@ -148,12 +153,53 @@ function ChatPage() {
         typingTimeoutRef.current = setTimeout(() => {}, 1000)
     }
 
+   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setConverting(true)
+        try {
+            const heicConverted = await convertIfHeic(file)
+            const finalFile = await resizeImage(heicConverted, 1200)
+            setImageFile(finalFile)
+            setImagePreview(URL.createObjectURL(finalFile))
+        } catch (err) {
+            console.error('Resim dönüştürme hatası:', err)
+        } finally {
+            setConverting(false)
+        }
+    }
+
+    const handleRemoveImage = () => {
+        setImageFile(null)
+        setImagePreview(null)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+
     const handleSend = async () => {
-        if (!newMessage.trim() || !otherProfile || sending) return
+        if ((!newMessage.trim() && !imageFile) || !otherProfile || sending) return
 
         setSending(true)
         const content = newMessage.trim()
         setNewMessage('')
+
+        let imageUrl: string | null = null
+
+        if (imageFile) {
+            const fileExt = imageFile.name.split('.').pop()
+            const filePath = `${user?.id}/${Date.now()}.${fileExt}`
+
+            const { error: uploadError } = await supabase.storage
+                .from('post-images')
+                .upload(filePath, imageFile)
+
+            if (!uploadError) {
+                const { data: urlData } = supabase.storage
+                    .from('post-images')
+                    .getPublicUrl(filePath)
+                imageUrl = urlData.publicUrl
+            }
+        }
 
         const { data: sent } = await supabase
             .from('messages')
@@ -161,11 +207,13 @@ function ChatPage() {
                 sender_id: user?.id,
                 receiver_id: otherProfile.id,
                 content,
+                image_url: imageUrl,
             })
             .select()
             .single()
 
         if (sent) setMessages((prev) => [...prev, sent])
+        handleRemoveImage()
         setSending(false)
     }
 
@@ -285,7 +333,7 @@ function ChatPage() {
                                     </div>
                                 )}
 
-                                <div className="flex flex-col max-w-[70%]">
+                               <div className="flex flex-col max-w-[70%]">
                                     {msg.story_id && msg.story_preview_url && (
                                         <div className={`flex items-center gap-2 mb-1 ${isMine ? 'flex-row-reverse' : ''}`}>
                                             <img
@@ -299,15 +347,24 @@ function ChatPage() {
                                             </span>
                                         </div>
                                     )}
-                                    <div
-                                        className={`px-4 py-2 rounded-2xl text-sm break-words ${
-                                            isMine
-                                                ? 'bg-purple-600 text-white rounded-br-sm'
-                                                : 'bg-gray-800 text-white rounded-bl-sm'
-                                        }`}
-                                    >
-                                        {msg.content}
-                                    </div>
+                                    {msg.image_url && (
+                                        <img
+                                            src={msg.image_url}
+                                            alt="gönderilen fotoğraf"
+                                            className="rounded-2xl max-h-64 max-w-full object-cover mb-1 border border-gray-800"
+                                        />
+                                    )}
+                                    {msg.content && (
+                                        <div
+                                            className={`px-4 py-2 rounded-2xl text-sm break-words ${
+                                                isMine
+                                                    ? 'bg-purple-600 text-white rounded-br-sm'
+                                                    : 'bg-gray-800 text-white rounded-bl-sm'
+                                            }`}
+                                        >
+                                            {msg.content}
+                                        </div>
+                                    )}
                                     {isLastOfGroup && (
                                         <span className={`text-[10px] text-gray-500 mt-1 ${isMine ? 'text-right' : 'text-left'}`}>
                                             {formatMessageTime(msg.created_at)}
@@ -340,22 +397,50 @@ function ChatPage() {
                 <div ref={bottomRef} />
             </div>
 
-            <div className="border-t border-gray-800 px-4 py-3 flex gap-3 items-end">
-                <textarea
-                    placeholder="Mesaj yaz..."
-                    className="flex-1 bg-gray-800 text-white placeholder-gray-500 text-sm rounded-2xl px-4 py-3 resize-none outline-none max-h-32"
-                    rows={1}
-                    value={newMessage}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                />
-                <button
-                    onClick={handleSend}
-                    disabled={!newMessage.trim() || sending}
-                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:opacity-50 text-white font-bold p-3 rounded-2xl transition shrink-0"
-                >
-                    <Send size={18} />
-                </button>
+            <div className="border-t border-gray-800 px-4 py-3">
+                {imagePreview && (
+                    <div className="relative w-fit mb-2">
+                        <img src={imagePreview} alt="önizleme" className="h-20 rounded-xl border border-gray-700" />
+                        <button
+                            onClick={handleRemoveImage}
+                            className="absolute -top-2 -right-2 bg-gray-900 border border-gray-700 text-white rounded-full p-1 hover:bg-gray-800 transition"
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                )}
+                <div className="flex gap-3 items-end">
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={converting}
+                        className="text-gray-400 hover:text-purple-400 transition p-2.5 shrink-0 disabled:opacity-50"
+                        title="Fotoğraf ekle"
+                    >
+                        <ImageIcon size={20} />
+                    </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,.heic,.heif"
+                        className="hidden"
+                        onChange={handleImageChange}
+                    />
+                    <textarea
+                        placeholder="Mesaj yaz..."
+                        className="flex-1 bg-gray-800 text-white placeholder-gray-500 text-sm rounded-2xl px-4 py-3 resize-none outline-none max-h-32"
+                        rows={1}
+                        value={newMessage}
+                        onChange={handleInputChange}
+                        onKeyDown={handleKeyDown}
+                    />
+                    <button
+                        onClick={handleSend}
+                        disabled={(!newMessage.trim() && !imageFile) || sending}
+                        className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:opacity-50 text-white font-bold p-3 rounded-2xl transition shrink-0"
+                    >
+                        <Send size={18} />
+                    </button>
+                </div>
             </div>
         </div>
     )
