@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { StoryViewer } from '../components/StoryViewer'
-import { MoreVertical, Trash2, Search, Pin, PinOff, BellOff, Bell, Ban } from 'lucide-react'
+import { MoreVertical, Trash2, Search, Pin, PinOff, BellOff, Bell, Ban, Users, Plus } from 'lucide-react'
 
 function formatListTime(dateString: string): string {
     const date = new Date(dateString)
@@ -33,9 +33,11 @@ function MessagesPage() {
     // Hikaye halkası + görüntüleyici
     const [storiesByUser, setStoriesByUser] = useState<Record<string, any[]>>({})
     const [viewerGroups, setViewerGroups] = useState<any[] | null>(null)
+    const [myGroups, setMyGroups] = useState<any[]>([])
 
     useEffect(() => {
         fetchConversations()
+        fetchMyGroups()
 
         const channel = supabase
             .channel('messages-list')
@@ -59,6 +61,43 @@ function MessagesPage() {
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
+
+    const fetchMyGroups = async () => {
+        const { data: memberRows } = await supabase
+            .from('group_members')
+            .select('group_id')
+            .eq('user_id', user?.id)
+
+        const groupIds = (memberRows ?? []).map((m: any) => m.group_id)
+        if (groupIds.length === 0) { setMyGroups([]); return }
+
+        const { data: groups } = await supabase
+            .from('groups')
+            .select('*')
+            .in('id', groupIds)
+
+        const groupsWithLastMsg = await Promise.all(
+            (groups ?? []).map(async (g: any) => {
+                const { data: lastMsg } = await supabase
+                    .from('group_messages')
+                    .select('content, created_at, image_url')
+                    .eq('group_id', g.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single()
+
+                return { ...g, lastMsg: lastMsg ?? null }
+            })
+        )
+
+        groupsWithLastMsg.sort((a, b) => {
+            const aTime = a.lastMsg ? new Date(a.lastMsg.created_at).getTime() : new Date(a.created_at).getTime()
+            const bTime = b.lastMsg ? new Date(b.lastMsg.created_at).getTime() : new Date(b.created_at).getTime()
+            return bTime - aTime
+        })
+
+        setMyGroups(groupsWithLastMsg)
+    }
 
     const fetchConversations = async () => {
         const { data: messages } = await supabase
@@ -230,11 +269,20 @@ function MessagesPage() {
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 z-10">
                 <div className="flex items-center justify-between">
                     <h1 className="text-white font-bold text-xl">Mesajlar</h1>
-                    {totalUnread > 0 && (
-                        <span className="bg-purple-600 text-white text-xs font-bold rounded-full px-2.5 py-1">
-                            {totalUnread} yeni
-                        </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {totalUnread > 0 && (
+                            <span className="bg-purple-600 text-white text-xs font-bold rounded-full px-2.5 py-1">
+                                {totalUnread} yeni
+                            </span>
+                        )}
+                        <button
+                            onClick={() => navigate('/grup-olustur')}
+                            className="text-purple-400 hover:text-purple-300 transition p-1.5 rounded-full hover:bg-gray-900"
+                            title="Yeni grup"
+                        >
+                            <Plus size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="relative mt-3">
@@ -261,7 +309,7 @@ function MessagesPage() {
                         </div>
                     ))}
                 </div>
-            ) : conversations.length === 0 ? (
+            ) : (conversations.length === 0 && myGroups.length === 0) ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center px-6">
                     <div className="w-16 h-16 rounded-full bg-gray-900 flex items-center justify-center mb-4">
                         <Search size={24} className="text-gray-600" />
@@ -269,10 +317,30 @@ function MessagesPage() {
                     <p className="text-white font-bold">Henüz mesajın yok</p>
                     <p className="text-gray-500 text-sm mt-1">Birine mesaj göndererek konuşmaya başla.</p>
                 </div>
-            ) : filteredConversations.length === 0 ? (
+            ) : (filteredConversations.length === 0 && myGroups.length === 0) ? (
                 <p className="text-gray-400 text-center py-8 text-sm">"{searchQuery}" için sonuç bulunamadı.</p>
             ) : (
                 <ul>
+                    {myGroups
+                        .filter((g) => g.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map((g) => (
+                        <li
+                            key={g.id}
+                            className="flex items-center gap-3 px-4 py-4 border-b border-gray-800 cursor-pointer hover:bg-gray-900 transition"
+                            onClick={() => navigate(`/gruplar/${g.id}`)}
+                        >
+                            <div className="w-[52px] h-[52px] rounded-full bg-purple-600 flex items-center justify-center shrink-0">
+                                <Users size={22} className="text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-white font-semibold text-sm truncate">{g.name}</p>
+                                <p className="text-gray-500 text-sm mt-0.5 truncate">
+                                    {g.lastMsg ? (g.lastMsg.image_url ? '📷 Fotoğraf' : g.lastMsg.content) : 'Henüz mesaj yok'}
+                                </p>
+                            </div>
+                        </li>
+                    ))}
+
                     {filteredConversations.map(({ profile, lastMsg, unreadCount, isPinned, isMuted }) => {
                         const hasStory = !!storiesByUser[profile.id]?.length
 
