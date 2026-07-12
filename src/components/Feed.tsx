@@ -5,7 +5,7 @@ import { supabase } from '../supabase'
 import { convertIfHeic, resizeImage } from '../utils/imageHelpers'
 import PostCard from "./PostCard"
 import StoriesBar from "./StoriesBar"
-import { Image, X } from 'lucide-react'
+import { Image, X, Video } from 'lucide-react'
 
 const PAGE_SIZE = 10
 
@@ -41,6 +41,9 @@ function Feed() {
 
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [videoPreview, setVideoPreview] = useState<string | null>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
   const [converting, setConverting] = useState(false)
   const [posting, setPosting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -173,6 +176,32 @@ function Feed() {
     setImagePreviews((prev) => prev.filter((_, i) => i !== index))
   }
 
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const maxSizeBytes = 50 * 1024 * 1024
+    if (file.size > maxSizeBytes) {
+      showToast('Video en fazla 50 MB olabilir.', 'error')
+      return
+    }
+
+    if (!file.type.startsWith('video/')) {
+      showToast('Lütfen geçerli bir video dosyası seç.', 'error')
+      return
+    }
+
+    setVideoFile(file)
+    setVideoPreview(URL.createObjectURL(file))
+    handleClearAllImages()
+  }
+
+  const handleRemoveVideo = () => {
+    setVideoFile(null)
+    setVideoPreview(null)
+    if (videoInputRef.current) videoInputRef.current.value = ''
+  }
+
   const handleClearAllImages = () => {
     setImageFiles([])
     setImagePreviews([])
@@ -181,7 +210,7 @@ function Feed() {
 
   
    const handlePost = async () => {
-    if (!newPost.trim() && imageFiles.length === 0) return
+    if (!newPost.trim() && imageFiles.length === 0 && !videoFile) return
 
     if (newPost.length > 2000) {
       showToast('Post en fazla 2000 karakter olabilir.', 'error')
@@ -191,6 +220,7 @@ function Feed() {
     setPosting(true)
 
     const uploadedUrls: string[] = []
+    let videoUrl: string | null = null
 
     for (const file of imageFiles) {
       const fileExt = file.name.split('.').pop()
@@ -208,6 +238,24 @@ function Feed() {
       }
     }
 
+    if (videoFile) {
+      const fileExt = videoFile.name.split('.').pop()
+      const filePath = `${user?.id}/${Date.now()}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('post-videos')
+        .upload(filePath, videoFile)
+
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage
+          .from('post-videos')
+          .getPublicUrl(filePath)
+        videoUrl = urlData.publicUrl
+      } else {
+        showToast('Video yüklenemedi, tekrar dene.', 'error')
+      }
+    }
+
     await supabase
       .from('posts')
       .insert({
@@ -215,10 +263,12 @@ function Feed() {
         username: user?.user_metadata?.username,
         image_url: uploadedUrls[0] ?? null,
         image_urls: uploadedUrls.length > 0 ? uploadedUrls : null,
+        video_url: videoUrl,
       })
 
     setNewPost('')
     handleClearAllImages()
+    handleRemoveVideo()
     setPosting(false)
     refreshFeed()
     showToast('Postun paylaşıldı!', 'success')
@@ -269,19 +319,50 @@ function Feed() {
             </div>
           )}
 
+          {videoPreview && (
+            <div className="relative mt-2 rounded-2xl overflow-hidden border border-gray-700 w-fit max-w-full">
+              <video src={videoPreview} controls className="max-h-64 max-w-full" />
+              <button
+                onClick={handleRemoveVideo}
+                className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1.5 hover:bg-black transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
           {converting && (
             <p className="text-gray-500 text-sm mt-2 animate-pulse">Fotoğraf işleniyor...</p>
           )}
 
           <div className="flex items-center justify-between mt-2">
-           <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={converting || imageFiles.length >= 5}
-              className="text-purple-400 hover:text-purple-300 transition p-2 rounded-full hover:bg-gray-900 disabled:opacity-50"
-              title={imageFiles.length >= 5 ? 'En fazla 5 fotoğraf' : 'Fotoğraf ekle'}
-            >
-              <Image size={20} />
-            </button>
+           <div className="flex items-center gap-1">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={converting || imageFiles.length >= 5 || !!videoFile}
+                className="text-purple-400 hover:text-purple-300 transition p-2 rounded-full hover:bg-gray-900 disabled:opacity-50"
+                title={imageFiles.length >= 5 ? 'En fazla 5 fotoğraf' : 'Fotoğraf ekle'}
+              >
+                <Image size={20} />
+              </button>
+
+              <button
+                onClick={() => videoInputRef.current?.click()}
+                disabled={converting || imageFiles.length > 0}
+                className="text-purple-400 hover:text-purple-300 transition p-2 rounded-full hover:bg-gray-900 disabled:opacity-50"
+                title="Video ekle"
+              >
+                <Video size={20} />
+              </button>
+
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={handleVideoChange}
+              />
+            </div>
 
             <input
               ref={fileInputRef}
@@ -323,6 +404,7 @@ function Feed() {
             content={post.content}
             imageUrl={post.image_url}
             imageUrls={post.image_urls}
+                videoUrl={post.video_url}
             avatarUrl={avatarMap[post.username]}
             createdAt={post.created_at}
             onDelete={(deletedId) => setPosts((prev) => prev.filter((p) => p.id !== deletedId))}

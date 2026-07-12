@@ -70,6 +70,7 @@ function PostDetailPage() {
                     content={post.content}
                     imageUrl={post.image_url}
                 imageUrls={post.image_urls}
+                videoUrl={post.video_url}
                     avatarUrl={avatarUrl}
                     createdAt={post.created_at}
                     onDelete={() => navigate('/')}

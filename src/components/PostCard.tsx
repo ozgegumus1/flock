@@ -34,9 +34,10 @@ interface PostCardProps {
   createdAt?: string
   imageUrl?: string | null
   imageUrls?: string[] | null
+  videoUrl?: string | null
 }
 
-function PostCard({ username, handle, content, postId, avatarUrl, onDelete, createdAt, imageUrl, imageUrls }: PostCardProps) {
+function PostCard({ username, handle, content, postId, avatarUrl, onDelete, createdAt, imageUrl, imageUrls, videoUrl }: PostCardProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
  const [liked, setLiked] = useState(false)
@@ -458,7 +459,13 @@ useEffect(() => {
             </p>
           )}
 
-         {(() => {
+         {videoUrl && (
+            <div className="mt-2 rounded-2xl overflow-hidden border border-gray-800" onClick={(e) => e.stopPropagation()}>
+              <video src={videoUrl} controls className="w-full max-h-96" />
+            </div>
+          )}
+
+          {!videoUrl && (() => {
             const images = imageUrls && imageUrls.length > 0 ? imageUrls : (imageUrl ? [imageUrl] : [])
             if (images.length === 0) return null
 

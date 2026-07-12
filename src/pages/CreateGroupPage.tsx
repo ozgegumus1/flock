@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { Search, X, Check } from 'lucide-react'
+import { Search, Check } from 'lucide-react'
 
 function CreateGroupPage() {
     const { user } = useAuth()

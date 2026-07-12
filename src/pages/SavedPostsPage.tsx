@@ -91,6 +91,7 @@ function SavedPostsPage() {
                         content={post.content}
                         imageUrl={post.image_url}
                 imageUrls={post.image_urls}
+                videoUrl={post.video_url}
                         avatarUrl={avatarMap[post.username]}
                         createdAt={post.created_at}
                         onDelete={(deletedId) => setPosts((prev) => prev.filter((p) => p.id !== deletedId))}
