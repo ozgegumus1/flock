@@ -355,8 +355,8 @@ function MessagesPage() {
                                 onClick={hasStory ? (e) => openStoryViewer(e, profile) : undefined}
                             >
                                 <div className={`rounded-full ${hasStory ? 'p-[2px] bg-gradient-to-tr from-purple-600 to-pink-500' : ''}`}>
-                                    {profile.avatar_url ? (
-                                        <img src={profile.avatar_url} alt={profile.username} className="w-[52px] h-[52px] rounded-full object-cover" />
+                                  {profile.avatar_url ? (
+                                        <img src={profile.avatar_url} alt={profile.username} loading="lazy" decoding="async" className="w-[52px] h-[52px] rounded-full object-cover" />
                                     ) : (
                                         <div className="w-[52px] h-[52px] rounded-full bg-purple-500" />
                                     )}

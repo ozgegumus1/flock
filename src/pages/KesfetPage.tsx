@@ -267,7 +267,7 @@ function KesfetPage() {
                                         onClick={() => navigate(`/profil/${profile.username}`)}
                                     >
                                         {profile.avatar_url ? (
-                                            <img src={profile.avatar_url} alt={profile.username} className="w-11 h-11 rounded-full object-cover shrink-0" />
+                                            <img src={profile.avatar_url} alt={profile.username} loading="lazy" decoding="async" className="w-11 h-11 rounded-full object-cover shrink-0" />
                                         ) : (
                                             <div className="w-11 h-11 rounded-full bg-purple-500 shrink-0" />
                                         )}
@@ -322,17 +322,17 @@ function KesfetPage() {
                                     onClick={() => navigate(`/profil/${profile.username}`)}
                                 >
                                     {profile.avatar_url ? (
-                                        <img src={profile.avatar_url} alt={profile.username} className="w-11 h-11 rounded-full object-cover shrink-0" />
-                                    ) : (
-                                        <div className="w-11 h-11 rounded-full bg-purple-500 shrink-0" />
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-white font-bold text-sm truncate">
-                                            {profile.full_name || profile.username}
-                                        </p>
-                                        <p className="text-gray-500 text-xs">@{profile.username}</p>
-                                    </div>
-                                    <UserIcon size={16} className="text-gray-600 shrink-0" />
+                                    <img src={profile.avatar_url} alt={profile.username} loading="lazy" decoding="async" className="w-11 h-11 rounded-full object-cover shrink-0" />
+                                ) : (
+                                    <div className="w-11 h-11 rounded-full bg-purple-500 shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-white font-bold text-sm truncate">
+                                        {profile.full_name || profile.username}
+                                    </p>
+                                    <p className="text-gray-500 text-xs">@{profile.username}</p>
+                                </div>
+                                <UserIcon size={16} className="text-gray-600 shrink-0" />
                                 </div>
                             ))}
                         </>

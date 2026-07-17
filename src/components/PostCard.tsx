@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, memo } from "react"
 import { Heart, MessageCircle, Trash2, MoreHorizontal, Pencil, Sticker, Flag, Bookmark } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "../supabase"
@@ -37,7 +37,7 @@ interface PostCardProps {
   videoUrl?: string | null
 }
 
-function PostCard({ username, handle, content, postId, avatarUrl, onDelete, createdAt, imageUrl, imageUrls, videoUrl }: PostCardProps) {
+function PostCardComponent({ username, handle, content, postId, avatarUrl, onDelete, createdAt, imageUrl, imageUrls, videoUrl }: PostCardProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
  const [liked, setLiked] = useState(false)
@@ -360,6 +360,8 @@ useEffect(() => {
           <img
             src={avatarUrl}
             alt={username}
+            loading="lazy"
+            decoding="async"
             className="w-10 h-10 rounded-full object-cover shrink-0 cursor-pointer"
             onClick={() => navigate(`/profil/${username}`)}
           />
@@ -472,9 +474,11 @@ useEffect(() => {
             if (images.length === 1) {
               return (
                 <div className="mt-2 rounded-2xl overflow-hidden border border-gray-800">
-                  <img
+                 <img
                     src={images[0]}
                     alt="post görseli"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full max-h-96 object-cover"
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -485,9 +489,11 @@ useEffect(() => {
             return (
               <div className="mt-2 relative" onClick={(e) => e.stopPropagation()}>
                 <div className="rounded-2xl overflow-hidden border border-gray-800">
-                  <img
+                 <img
                     src={images[carouselIndex]}
                     alt={`post görseli ${carouselIndex + 1}`}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full max-h-96 object-cover"
                   />
                 </div>
@@ -816,4 +822,5 @@ useEffect(() => {
   )
 }
 
+const PostCard = memo(PostCardComponent)
 export default PostCard
