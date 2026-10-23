@@ -192,10 +192,10 @@ function EditProfilePage() {
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 flex items-center gap-4 z-10">
                 <button
                     onClick={() => navigate(-1)}
-                    className="text-white hover:text-gray-400 transition">
+                    className="text-ink hover:text-gray-400 transition">
                     ← Geri
                 </button>
-                <h1 className="text-white font-bold text-xl">Profili Düzenle</h1>
+                <h1 className="text-ink font-bold text-xl">Profili Düzenle</h1>
             </div>
 
             <div
@@ -213,14 +213,14 @@ function EditProfilePage() {
                 )}
 
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">
+                    <span className="text-ink text-sm font-bold">
                         {convertingCover ? 'İşleniyor...' : 'Kapak fotoğrafını değiştir'}
                     </span>
                 </div>
 
                 {convertingCover && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <span className="text-white text-sm font-bold animate-pulse">İşleniyor...</span>
+                        <span className="text-ink text-sm font-bold animate-pulse">İşleniyor...</span>
                     </div>
                 )}
 
@@ -263,13 +263,13 @@ function EditProfilePage() {
                             <div className="w-24 h-24 rounded-full bg-purple-500 border-4 border-gray-950" />
                         )}
                         <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                            <span className="text-white text-xs font-bold">
+                            <span className="text-ink text-xs font-bold">
                                 {convertingAvatar ? 'İşleniyor...' : 'Değiştir'}
                             </span>
                         </div>
                         {convertingAvatar && (
                             <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
-                                <span className="text-white text-xs font-bold animate-pulse">İşleniyor...</span>
+                                <span className="text-ink text-xs font-bold animate-pulse">İşleniyor...</span>
                             </div>
                         )}
                     </div>
@@ -310,7 +310,7 @@ function EditProfilePage() {
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        className="bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white outline-none focus:border-purple-500 transition"
+                        className="bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-ink outline-none focus:border-purple-500 transition"
                     />
                 </div>
 
@@ -320,7 +320,7 @@ function EditProfilePage() {
                         type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white outline-none focus:border-purple-500 transition"
+                        className="bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-ink outline-none focus:border-purple-500 transition"
                     />
                 </div>
 
@@ -330,7 +330,7 @@ function EditProfilePage() {
                         value={bio}
                         onChange={(e) => setBio(e.target.value)}
                         rows={4}
-                        className="bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white outline-none focus:border-purple-500 transition resize-none"
+                        className="bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-ink outline-none focus:border-purple-500 transition resize-none"
                     />
                 </div>
 

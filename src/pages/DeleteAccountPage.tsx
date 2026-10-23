@@ -65,11 +65,11 @@ function DeleteAccountPage() {
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 flex items-center gap-4 z-10">
                 <button
                     onClick={() => navigate('/ayarlar')}
-                    className="text-white hover:text-gray-400 transition"
+                    className="text-ink hover:text-gray-400 transition"
                 >
                     ← Geri
                 </button>
-                <h1 className="text-white font-bold text-xl">Hesabı Sil</h1>
+                <h1 className="text-ink font-bold text-xl">Hesabı Sil</h1>
             </div>
 
             <div className="p-6 flex flex-col gap-4 max-w-md">
@@ -100,12 +100,12 @@ function DeleteAccountPage() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleVerifyPassword()}
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 pr-11 text-white outline-none focus:border-red-500 transition"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 pr-11 text-ink outline-none focus:border-red-500 transition"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword((s) => !s)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-ink transition"
                                 >
                                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
@@ -139,7 +139,7 @@ function DeleteAccountPage() {
                             value={confirmText}
                             onChange={(e) => setConfirmText(e.target.value)}
                             placeholder="SİL"
-                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white outline-none focus:border-red-500 transition"
+                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-ink outline-none focus:border-red-500 transition"
                         />
 
                         {error && <p className="text-red-400 text-sm">{error}</p>}
@@ -147,7 +147,7 @@ function DeleteAccountPage() {
                         <div className="flex gap-3 mt-2">
                             <button
                                 onClick={() => { setStep(1); setConfirmText(''); setError('') }}
-                                className="flex-1 border border-gray-700 text-white font-bold py-3 rounded-xl hover:bg-gray-900 transition"
+                                className="flex-1 border border-gray-700 text-ink font-bold py-3 rounded-xl hover:bg-gray-900 transition"
                             >
                                 Vazgeç
                             </button>

@@ -10,6 +10,7 @@ function SavedPostsPage() {
     const navigate = useNavigate()
     const [posts, setPosts] = useState<any[]>([])
     const [avatarMap, setAvatarMap] = useState<Record<string, string>>({})
+    const [genderMap, setGenderMap] = useState<Record<string, string>>({})
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -49,14 +50,17 @@ function SavedPostsPage() {
         if (usernames.length > 0) {
             const { data: profiles } = await supabase
                 .from('profiles')
-                .select('username, avatar_url')
+                .select('username, avatar_url, gender')
                 .in('username', usernames)
 
             const map: Record<string, string> = {}
+            const genders: Record<string, string> = {}
             ;(profiles ?? []).forEach((p: any) => {
                 if (p.avatar_url) map[p.username] = p.avatar_url
+                if (p.gender) genders[p.username] = p.gender
             })
             setAvatarMap(map)
+            setGenderMap(genders)
         }
 
         setLoading(false)
@@ -65,10 +69,10 @@ function SavedPostsPage() {
     return (
         <div className="flex-1 min-h-screen border-x border-gray-800">
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 flex items-center gap-4 z-10">
-                <button onClick={() => navigate(-1)} className="text-white hover:text-gray-400 transition">
+                <button onClick={() => navigate(-1)} className="text-ink hover:text-gray-400 transition">
                     ← Geri
                 </button>
-                <h1 className="text-white font-bold text-xl">Kaydedilenler</h1>
+                <h1 className="text-ink font-bold text-xl">Kaydedilenler</h1>
             </div>
 
             {loading ? (
@@ -78,7 +82,7 @@ function SavedPostsPage() {
                     <div className="w-16 h-16 rounded-full bg-gray-900 flex items-center justify-center mb-4">
                         <Bookmark size={24} className="text-gray-600" />
                     </div>
-                    <p className="text-white font-bold">Henüz kaydedilen gönderi yok</p>
+                    <p className="text-ink font-bold">Henüz kaydedilen gönderi yok</p>
                     <p className="text-gray-500 text-sm mt-1">Bir gönderiyi kaydetmek için bookmark ikonuna dokun.</p>
                 </div>
             ) : (
@@ -93,6 +97,7 @@ function SavedPostsPage() {
                 imageUrls={post.image_urls}
                 videoUrl={post.video_url}
                         avatarUrl={avatarMap[post.username]}
+                        gender={genderMap[post.username]}
                         createdAt={post.created_at}
                         onDelete={(deletedId) => setPosts((prev) => prev.filter((p) => p.id !== deletedId))}
                     />

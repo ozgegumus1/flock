@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { StoryViewer } from '../components/StoryViewer'
-import { Check, X } from 'lucide-react'
 
 function formatNotifTime(dateString?: string): string {
     if (!dateString) return ''
@@ -28,9 +26,6 @@ function NotificationsPage() {
     const { user, refreshUnreadNotifications } = useAuth()
     const navigate = useNavigate()
     const [notifications, setNotifications] = useState<any[]>([])
-    const [followRequests, setFollowRequests] = useState<any[]>([])
-    const [loadingRequests, setLoadingRequests] = useState(true)
-    const [viewerGroups, setViewerGroups] = useState<any[] | null>(null)
 
     // Sayfa açıldığı andaki okunmamış bildirimlerin id'lerini saklıyoruz
     // Bunlar geçici olarak vurgulu görünecek, sonra sessizce "okundu"ya dönecek
@@ -40,7 +35,6 @@ function NotificationsPage() {
 
     useEffect(() => {
         fetchNotifications()
-        fetchFollowRequests()
 
         return () => {
             if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current)
@@ -92,77 +86,9 @@ function NotificationsPage() {
         refreshUnreadNotifications?.()
     }
 
-    const fetchFollowRequests = async () => {
-        const { data: requests } = await supabase
-            .from('follows')
-            .select('id, follower_id, created_at')
-            .eq('following_id', user?.id)
-            .eq('status', 'pending')
-            .order('created_at', { ascending: false })
-
-        if (!requests || requests.length === 0) {
-            setLoadingRequests(false)
-            return
-        }
-
-        const followerIds = requests.map((r: any) => r.follower_id)
-        const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, username, full_name, avatar_url')
-            .in('id', followerIds)
-
-        const merged = requests.map((r: any) => ({
-            requestId: r.id,
-            profile: (profiles ?? []).find((p: any) => p.id === r.follower_id),
-        })).filter((r: any) => r.profile)
-
-        setFollowRequests(merged)
-        setLoadingRequests(false)
-    }
-
-    const handleAccept = async (requestId: string) => {
-        await supabase
-            .from('follows')
-            .update({ status: 'accepted' })
-            .eq('id', requestId)
-
-        setFollowRequests((prev) => prev.filter((r) => r.requestId !== requestId))
-    }
-
-    const handleReject = async (requestId: string) => {
-        await supabase
-            .from('follows')
-            .delete()
-            .eq('id', requestId)
-
-        setFollowRequests((prev) => prev.filter((r) => r.requestId !== requestId))
-    }
-
     const handleNotificationClick = async (notification: any) => {
         if ((notification.type === 'like' || notification.type === 'comment') && notification.post_id) {
             navigate(`/gonderi/${notification.post_id}`)
-            return
-        }
-
-        if (notification.type === 'story_like' && notification.story_id) {
-            const { data: story } = await supabase
-                .from('stories')
-                .select('*')
-                .eq('id', notification.story_id)
-                .gt('expires_at', new Date().toISOString())
-                .single()
-
-            if (story) {
-                setViewerGroups([{
-                    userId: user?.id,
-                    username: user?.user_metadata?.username,
-                    avatarUrl: notification.actor?.avatar_url ?? null,
-                    stories: [story],
-                    hasUnseen: false,
-                }])
-            } else {
-                navigate(`/profil/${notification.actor?.username}`)
-            }
             return
         }
 
@@ -177,63 +103,10 @@ function NotificationsPage() {
         <div className="flex-1 min-h-screen border-x border-gray-800">
 
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800">
-                <h1 className="text-white font-bold text-xl">Bildirimler</h1>
+                <h1 className="text-ink font-bold text-xl">Bildirimler</h1>
             </div>
 
-            {!loadingRequests && followRequests.length > 0 && (
-                <div className="border-b border-gray-800">
-                    <p className="text-gray-400 text-xs font-bold uppercase tracking-wide px-4 pt-4 pb-1">
-                        Takip İstekleri
-                    </p>
-                    {followRequests.map(({ requestId, profile }) => (
-                        <div
-                            key={requestId}
-                            className="flex items-center gap-3 px-4 py-3"
-                        >
-                            {profile.avatar_url ? (
-                                <img
-                                    src={profile.avatar_url}
-                                    alt={profile.username}
-                                    className="w-11 h-11 rounded-full object-cover shrink-0 cursor-pointer"
-                                    onClick={() => navigate(`/profil/${profile.username}`)}
-                                />
-                            ) : (
-                                <div
-                                    className="w-11 h-11 rounded-full bg-purple-500 shrink-0 cursor-pointer"
-                                    onClick={() => navigate(`/profil/${profile.username}`)}
-                                />
-                            )}
-                            <div
-                                className="flex-1 min-w-0 cursor-pointer"
-                                onClick={() => navigate(`/profil/${profile.username}`)}
-                            >
-                                <p className="text-white font-bold text-sm truncate">
-                                    {profile.full_name || profile.username}
-                                </p>
-                                <p className="text-gray-400 text-xs">@{profile.username} seni takip etmek istiyor</p>
-                            </div>
-                            <div className="flex gap-2 shrink-0">
-                                <button
-                                    onClick={() => handleAccept(requestId)}
-                                    className="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-full transition"
-                                    title="Onayla"
-                                >
-                                    <Check size={16} />
-                                </button>
-                                <button
-                                    onClick={() => handleReject(requestId)}
-                                    className="bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-full transition"
-                                    title="Reddet"
-                                >
-                                    <X size={16} />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {notifications.length === 0 && followRequests.length === 0 ? (
+            {notifications.length === 0 ? (
                 <p className="text-gray-400 text-center py-8">Henüz bildirim yok.</p>
             ) : (
                 <>
@@ -274,12 +147,10 @@ function NotificationsPage() {
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-white text-sm">
-                                            {notification.type === 'like' && `❤️ ${notification.actor?.username} postunu beğendi.`}
-                                            {notification.type === 'comment' && `💬 ${notification.actor?.username} postuna yorum yaptı.`}
+                                        <p className="text-ink text-sm">
+                                            {notification.type === 'like' && `❤️ ${notification.actor?.username} sorunu beğendi.`}
+                                            {notification.type === 'comment' && `💬 ${notification.actor?.username} sorunu yanıtladı.`}
                                             {notification.type === 'follow' && `👤 ${notification.actor?.username} seni takip etti.`}
-                                            {notification.type === 'follow_accepted' && `✅ ${notification.actor?.username} takip isteğini kabul etti.`}
-                                            {notification.type === 'story_like' && `❤️ ${notification.actor?.username} hikayeni beğendi.`}
                                         </p>
                                         <p className="text-gray-500 text-xs mt-0.5">{formatNotifTime(notification.created_at)}</p>
                                     </div>
@@ -295,14 +166,6 @@ function NotificationsPage() {
                         )
                     })}
                 </>
-            )}
-
-            {viewerGroups && (
-                <StoryViewer
-                    groups={viewerGroups}
-                    startGroupIndex={0}
-                    onClose={() => setViewerGroups(null)}
-                />
             )}
 
         </div>

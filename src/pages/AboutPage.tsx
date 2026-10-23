@@ -10,11 +10,11 @@ function AboutPage() {
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 flex items-center gap-4 z-10">
                 <button
                     onClick={() => navigate('/ayarlar')}
-                    className="text-white hover:text-gray-400 transition"
+                    className="text-ink hover:text-gray-400 transition"
                 >
                     ← Geri
                 </button>
-                <h1 className="text-white font-bold text-xl">Hakkında</h1>
+                <h1 className="text-ink font-bold text-xl">Hakkında</h1>
             </div>
 
             <div className="p-6 flex flex-col items-center text-center gap-2">
@@ -27,11 +27,11 @@ function AboutPage() {
 
             <div className="divide-y divide-gray-800 mt-2">
                 <div className="flex items-center justify-between px-4 py-4">
-                    <span className="text-white text-sm">Sürüm</span>
+                    <span className="text-ink text-sm">Sürüm</span>
                     <span className="text-gray-500 text-sm">1.0.0</span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-4">
-                    <span className="text-white text-sm">Geliştirici</span>
+                    <span className="text-ink text-sm">Geliştirici</span>
                     <span className="text-gray-500 text-sm">Özge Gümüş</span>
                 </div>
             </div>
@@ -45,7 +45,7 @@ function AboutPage() {
                     className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-900 transition border border-gray-800"
                 >
                     <Code2 size={18} className="text-gray-400" />
-                    <span className="text-white text-sm flex-1">GitHub</span>
+                    <span className="text-ink text-sm flex-1">GitHub</span>
                     <ExternalLink size={14} className="text-gray-500" />
                 </a>
                 <a
@@ -55,7 +55,7 @@ function AboutPage() {
                     className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-900 transition border border-gray-800"
                 >
                     <ExternalLink size={18} className="text-gray-400" />
-                    <span className="text-white text-sm flex-1">LinkedIn</span>
+                    <span className="text-ink text-sm flex-1">LinkedIn</span>
                     <ExternalLink size={14} className="text-gray-500" />
                 </a>
             </div>

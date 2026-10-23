@@ -17,7 +17,7 @@ function ToggleRow({ icon: Icon, label, description, checked, onChange }: Toggle
         <div className="flex items-center gap-3 px-4 py-4">
             <Icon size={20} className="text-gray-400 shrink-0" />
             <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-medium">{label}</p>
+                <p className="text-ink text-sm font-medium">{label}</p>
                 <p className="text-gray-500 text-xs mt-0.5">{description}</p>
             </div>
             <button
@@ -81,7 +81,7 @@ function NotificationSettingsPage() {
     }
 
     if (loading) {
-        return <div className="flex-1 p-4 text-white">Yükleniyor...</div>
+        return <div className="flex-1 p-4 text-ink">Yükleniyor...</div>
     }
 
     return (
@@ -90,11 +90,11 @@ function NotificationSettingsPage() {
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 flex items-center gap-4 z-10">
                 <button
                     onClick={() => navigate('/ayarlar')}
-                    className="text-white hover:text-gray-400 transition"
+                    className="text-ink hover:text-gray-400 transition"
                 >
                     ← Geri
                 </button>
-                <h1 className="text-white font-bold text-xl">Bildirimler</h1>
+                <h1 className="text-ink font-bold text-xl">Bildirimler</h1>
             </div>
 
             <p className="text-gray-500 text-sm px-4 pt-4">
@@ -105,14 +105,14 @@ function NotificationSettingsPage() {
                 <ToggleRow
                     icon={Heart}
                     label="Beğeniler"
-                    description="Postlarını beğenenlerden haberdar ol"
+                    description="Sorularını beğenenlerden haberdar ol"
                     checked={settings.likes}
                     onChange={(v) => updateSetting('likes', v)}
                 />
                 <ToggleRow
                     icon={MessageCircle}
                     label="Yorumlar"
-                    description="Postlarına yorum yapanlardan haberdar ol"
+                    description="Sorularını yanıtlayanlardan haberdar ol"
                     checked={settings.comments}
                     onChange={(v) => updateSetting('comments', v)}
                 />

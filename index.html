@@ -4,17 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Flock - Sosyal Medya Platformu</title>
+    <title>Flock - Soru sor, oy ver, deneyim paylaş</title>
 
     <!-- SEO -->
-    <meta name="description" content="Flock, arkadaşlarınla bağlantıda kalabileceğin, hikayeler ve gönderiler paylaşabileceğin modern bir sosyal medya platformu." />
-    <meta name="keywords" content="flock, sosyal medya, sosyal ağ, hikaye paylaşımı, mesajlaşma" />
+    <meta name="description" content="Flock'ta kombin, ürün, güvenilir öneri ve indirimler hakkında soru sor, oylamaya katıl, deneyimlerini paylaş. Kadınların birbirine gerçek tavsiye verdiği yer." />
+    <meta name="keywords" content="flock, soru cevap, kadın topluluğu, kombin, tavsiye, indirim, forum" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://flocksocial.vercel.app/" />
 
     <!-- Open Graph (WhatsApp, Facebook, LinkedIn paylaşımları için) -->
-    <meta property="og:title" content="Flock - Sosyal Medya Platformu" />
-    <meta property="og:description" content="Arkadaşlarınla bağlantıda kal, hikayeler ve gönderiler paylaş." />
+    <meta property="og:title" content="Flock - Soru sor, oy ver, deneyim paylaş" />
+    <meta property="og:description" content="Soru sor, oylamaya katıl, indirimleri kaçırma. Kadınların birbirine gerçek tavsiye verdiği yer." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://flocksocial.vercel.app/" />
     <meta property="og:image" content="https://flocksocial.vercel.app/og-image.png" />
@@ -22,8 +22,8 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Flock - Sosyal Medya Platformu" />
-    <meta name="twitter:description" content="Arkadaşlarınla bağlantıda kal, hikayeler ve gönderiler paylaş." />
+    <meta name="twitter:title" content="Flock - Soru sor, oy ver, deneyim paylaş" />
+    <meta name="twitter:description" content="Soru sor, oylamaya katıl, indirimleri kaçırma. Kadınların birbirine gerçek tavsiye verdiği yer." />
     <meta name="twitter:image" content="https://flocksocial.vercel.app/og-image.png" />
 
     <!-- PWA -->
@@ -39,6 +39,22 @@
     <!-- Android / genel -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="application-name" content="Flock" />
+      <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('flock-theme');
+          if (t !== 'light' && t !== 'dark') {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&display=swap&subset=latin,latin-ext" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>

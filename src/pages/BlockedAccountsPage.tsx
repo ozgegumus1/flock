@@ -60,11 +60,11 @@ function BlockedAccountsPage() {
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 flex items-center gap-4 z-10">
                 <button
                     onClick={() => navigate('/ayarlar')}
-                    className="text-white hover:text-gray-400 transition"
+                    className="text-ink hover:text-gray-400 transition"
                 >
                     ← Geri
                 </button>
-                <h1 className="text-white font-bold text-xl">Engellenen Hesaplar</h1>
+                <h1 className="text-ink font-bold text-xl">Engellenen Hesaplar</h1>
             </div>
 
             {loading ? (
@@ -74,7 +74,7 @@ function BlockedAccountsPage() {
                     <div className="w-16 h-16 rounded-full bg-gray-900 flex items-center justify-center mb-4">
                         <Ban size={24} className="text-gray-600" />
                     </div>
-                    <p className="text-white font-bold">Engellenen hesap yok</p>
+                    <p className="text-ink font-bold">Engellenen hesap yok</p>
                     <p className="text-gray-500 text-sm mt-1">Engellediğin kişiler burada listelenir.</p>
                 </div>
             ) : (
@@ -91,7 +91,7 @@ function BlockedAccountsPage() {
                                 <div className="w-11 h-11 rounded-full bg-purple-500 shrink-0" />
                             )}
                             <div className="flex-1 min-w-0">
-                                <p className="text-white font-bold text-sm truncate">
+                                <p className="text-ink font-bold text-sm truncate">
                                     {profile.full_name || profile.username}
                                 </p>
                                 <p className="text-gray-400 text-xs">@{profile.username}</p>
@@ -99,7 +99,7 @@ function BlockedAccountsPage() {
                             <button
                                 onClick={() => handleUnblock(blockId, profile.id)}
                                 disabled={unblockingId === profile.id}
-                                className="border border-gray-600 text-white text-xs font-bold px-3 py-1.5 rounded-full hover:bg-gray-800 transition disabled:opacity-50 shrink-0"
+                                className="border border-gray-600 text-ink text-xs font-bold px-3 py-1.5 rounded-full hover:bg-gray-800 transition disabled:opacity-50 shrink-0"
                             >
                                 {unblockingId === profile.id ? 'Kaldırılıyor...' : 'Engeli Kaldır'}
                             </button>

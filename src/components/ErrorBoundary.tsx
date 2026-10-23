@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
             return (
                 <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4 px-6 text-center">
                     <div className="text-purple-500 text-3xl font-bold">Flock</div>
-                    <p className="text-white font-bold">Bir şeyler ters gitti</p>
+                    <p className="text-ink font-bold">Bir şeyler ters gitti</p>
                     <p className="text-gray-400 text-sm">Sayfa yenileniyor...</p>
                     <button
                         onClick={() => window.location.reload()}

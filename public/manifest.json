@@ -1,7 +1,7 @@
 {
   "name": "Flock",
   "short_name": "Flock",
-  "description": "Flock — modern bir sosyal medya deneyimi",
+  "description": "Flock — soru sor, oy ver, deneyim paylaş",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#030712",

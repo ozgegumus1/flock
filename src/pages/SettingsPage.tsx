@@ -7,7 +7,6 @@ import {
     Lock,
     Bell,
     Ban,
-    Shield,
     HelpCircle,
     Info,
     LogOut,
@@ -38,7 +37,6 @@ function SettingsPage() {
             title: 'Tercihler',
             items: [
                 { icon: Bell, label: 'Bildirimler', onClick: () => navigate('/ayarlar/bildirimler') },
-                { icon: Shield, label: 'Gizlilik', onClick: () => navigate('/ayarlar/gizlilik') },
                 { icon: Ban, label: 'Engellenen hesaplar', onClick: () => navigate('/ayarlar/engellenenler') },
             ],
         },
@@ -56,11 +54,11 @@ function SettingsPage() {
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 flex items-center gap-4 z-10">
                 <button
                     onClick={() => navigate(-1)}
-                    className="text-white hover:text-gray-400 transition"
+                    className="text-ink hover:text-gray-400 transition"
                 >
                     ← Geri
                 </button>
-                <h1 className="text-white font-bold text-xl">Ayarlar</h1>
+                <h1 className="text-ink font-bold text-xl">Ayarlar</h1>
             </div>
 
             <div
@@ -73,7 +71,7 @@ function SettingsPage() {
                     <div className="w-12 h-12 rounded-full bg-purple-500 shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                    <p className="text-white font-bold text-sm">{user?.user_metadata?.username}</p>
+                    <p className="text-ink font-bold text-sm">{user?.user_metadata?.username}</p>
                     <p className="text-gray-400 text-xs">Profili görüntüle</p>
                 </div>
                 <ChevronRight size={18} className="text-gray-500" />
@@ -93,7 +91,7 @@ function SettingsPage() {
                                 className="flex items-center gap-3 w-full px-4 py-3.5 hover:bg-gray-900/50 transition text-left"
                             >
                                 <Icon size={20} className="text-gray-400 shrink-0" />
-                                <span className="text-white text-sm flex-1">{item.label}</span>
+                                <span className="text-ink text-sm flex-1">{item.label}</span>
                                 <ChevronRight size={16} className="text-gray-600" />
                             </button>
                         )
@@ -107,7 +105,7 @@ function SettingsPage() {
                     className="flex items-center gap-3 w-full px-4 py-3.5 hover:bg-gray-900/50 transition text-left"
                 >
                     <LogOut size={20} className="text-gray-400 shrink-0" />
-                    <span className="text-white text-sm flex-1">Çıkış yap</span>
+                    <span className="text-ink text-sm flex-1">Çıkış yap</span>
                 </button>
             </div>
 
@@ -127,13 +125,13 @@ function SettingsPage() {
                         <div className="w-14 h-14 rounded-full bg-red-950/40 flex items-center justify-center mx-auto mb-4">
                             <LogOut size={24} className="text-red-400" />
                         </div>
-                        <h3 className="text-white font-bold text-lg mb-1">Çıkış yap</h3>
+                        <h3 className="text-ink font-bold text-lg mb-1">Çıkış yap</h3>
                         <p className="text-gray-400 text-sm mb-6">Hesabından çıkış yapmak istediğine emin misin?</p>
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setShowLogoutModal(false)}
                                 disabled={loggingOut}
-                                className="flex-1 border border-gray-700 text-white text-sm font-bold py-2.5 rounded-xl hover:bg-gray-800 transition disabled:opacity-50"
+                                className="flex-1 border border-gray-700 text-ink text-sm font-bold py-2.5 rounded-xl hover:bg-gray-800 transition disabled:opacity-50"
                             >
                                 Vazgeç
                             </button>

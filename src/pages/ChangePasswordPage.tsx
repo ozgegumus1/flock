@@ -71,11 +71,11 @@ function ChangePasswordPage() {
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 flex items-center gap-4 z-10">
                 <button
                     onClick={() => navigate('/ayarlar')}
-                    className="text-white hover:text-gray-400 transition"
+                    className="text-ink hover:text-gray-400 transition"
                 >
                     ← Geri
                 </button>
-                <h1 className="text-white font-bold text-xl">Şifreyi Değiştir</h1>
+                <h1 className="text-ink font-bold text-xl">Şifreyi Değiştir</h1>
             </div>
 
             <div className="p-6 flex flex-col gap-4 max-w-md">
@@ -85,7 +85,7 @@ function ChangePasswordPage() {
                         <div className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center">
                             <Check size={28} className="text-green-400" />
                         </div>
-                        <p className="text-white font-bold">Şifren değiştirildi!</p>
+                        <p className="text-ink font-bold">Şifren değiştirildi!</p>
                         <p className="text-gray-400 text-sm">Ayarlara yönlendiriliyorsun...</p>
                     </div>
                 ) : (
@@ -97,12 +97,12 @@ function ChangePasswordPage() {
                                     type={showCurrent ? 'text' : 'password'}
                                     value={currentPassword}
                                     onChange={(e) => setCurrentPassword(e.target.value)}
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 pr-11 text-white outline-none focus:border-purple-500 transition"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 pr-11 text-ink outline-none focus:border-purple-500 transition"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowCurrent((s) => !s)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-ink transition"
                                 >
                                     {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
@@ -116,12 +116,12 @@ function ChangePasswordPage() {
                                     type={showNew ? 'text' : 'password'}
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 pr-11 text-white outline-none focus:border-purple-500 transition"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 pr-11 text-ink outline-none focus:border-purple-500 transition"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowNew((s) => !s)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-ink transition"
                                 >
                                     {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
@@ -135,12 +135,12 @@ function ChangePasswordPage() {
                                     type={showConfirm ? 'text' : 'password'}
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 pr-11 text-white outline-none focus:border-purple-500 transition"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 pr-11 text-ink outline-none focus:border-purple-500 transition"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowConfirm((s) => !s)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-ink transition"
                                 >
                                     {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
@@ -153,7 +153,7 @@ function ChangePasswordPage() {
                                 {passwordRules.map((rule) => (
                                     <div key={rule.label} className="flex items-center gap-2">
                                         <div className={`w-4 h-4 rounded-full flex items-center justify-center ${rule.valid ? 'bg-green-500' : 'bg-gray-700'}`}>
-                                            {rule.valid && <Check size={10} className="text-white" />}
+                                            {rule.valid && <Check size={10} className="text-ink" />}
                                         </div>
                                         <span className={`text-xs ${rule.valid ? 'text-green-400' : 'text-gray-500'}`}>
                                             {rule.label}

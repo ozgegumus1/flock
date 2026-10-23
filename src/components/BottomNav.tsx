@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Compass, Bell, Mail } from 'lucide-react'
+import { Home, PlusCircle, Bell, Mail } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import Avatar from './Avatar'
 
 function BottomNav() {
     const { user, profile, unreadMessages, unreadNotifications } = useAuth()
@@ -16,8 +17,8 @@ function BottomNav() {
                 <Home size={24} />
             </Link>
 
-            <Link to="/kesfet" className={`flex flex-col items-center gap-1 ${isActive('/kesfet') ? 'text-purple-500' : 'text-gray-400'}`}>
-                <Compass size={24} />
+            <Link to="/yeni-soru" className={`flex flex-col items-center gap-1 ${isActive('/yeni-soru') ? 'text-purple-500' : 'text-gray-400'}`}>
+                <PlusCircle size={24} />
             </Link>
 
             <Link to="/bildirimler" className={`flex flex-col items-center gap-1 ${isActive('/bildirimler') ? 'text-purple-500' : 'text-gray-400'}`}>
@@ -43,13 +44,7 @@ function BottomNav() {
             </Link>
 
             <Link to={profilePath} className={`flex flex-col items-center gap-1 ${isActive(profilePath) ? 'text-purple-500' : 'text-gray-400'}`}>
-                <div className={`w-7 h-7 rounded-full p-[1.5px] ${isActive(profilePath) ? 'bg-gradient-to-tr from-purple-600 to-pink-500' : 'bg-transparent'}`}>
-                    {profile?.avatar_url ? (
-                        <img src={profile.avatar_url} alt="profil" className="w-full h-full rounded-full object-cover" />
-                    ) : (
-                        <div className="w-full h-full rounded-full bg-purple-500" />
-                    )}
-                </div>
+                <Avatar src={profile?.avatar_url} gender={profile?.gender} size={32} alt="profil" />
             </Link>
 
         </div>

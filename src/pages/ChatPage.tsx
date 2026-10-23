@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
-import { MoreVertical, Trash2, Send, Image as ImageIcon, X } from 'lucide-react'
+import { ArrowLeft, MoreVertical, Trash2, Send, Image as ImageIcon, X } from 'lucide-react'
+import Avatar from '../components/Avatar'
 import { convertIfHeic, resizeImage } from '../utils/imageHelpers'
 
 function formatMessageTime(dateString: string): string {
@@ -235,38 +236,34 @@ function ChatPage() {
         }
     }
 
-    if (loading) return <div className="flex-1 p-4 text-white">Yükleniyor...</div>
-    if (!otherProfile) return <div className="flex-1 p-4 text-white">Kullanıcı bulunamadı.</div>
+    if (loading) return <div className="flex-1 p-4 text-ink">Yükleniyor...</div>
+    if (!otherProfile) return <div className="flex-1 p-4 text-ink">Kullanıcı bulunamadı.</div>
 
     return (
-        <div className="flex-1 min-h-screen border-x border-gray-800 flex flex-col">
+        <div className="min-h-[calc(100dvh-3.5rem)] border-x border-gray-800 flex flex-col">
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 flex items-center gap-3 z-10">
                 <button
                     onClick={() => navigate('/mesajlar')}
-                    className="text-gray-400 hover:text-white mr-1"
+                    className="text-gray-400 hover:text-ink transition"
+                    aria-label="Mesajlara dön"
                 >
-                    ←
+                    <ArrowLeft size={22} />
                 </button>
 
-                {otherProfile.avatar_url ? (
-                    <img
-                        src={otherProfile.avatar_url}
-                        alt={otherProfile.username}
-                        className="w-9 h-9 rounded-full object-cover cursor-pointer"
-                        onClick={() => navigate(`/profil/${otherProfile.username}`)}
-                    />
-                ) : (
-                    <div
-                        className="w-9 h-9 rounded-full bg-purple-500 cursor-pointer"
-                        onClick={() => navigate(`/profil/${otherProfile.username}`)}
-                    />
-                )}
+                <Avatar
+                    src={otherProfile.avatar_url}
+                    gender={otherProfile.gender}
+                    size={44}
+                    alt={otherProfile.username}
+                    className="cursor-pointer"
+                    onClick={() => navigate(`/profil/${otherProfile.username}`)}
+                />
 
                 <div
                     className="cursor-pointer flex-1 min-w-0"
                     onClick={() => navigate(`/profil/${otherProfile.username}`)}
                 >
-                    <p className="text-white font-bold text-sm">{otherProfile.full_name || otherProfile.username}</p>
+                    <p className="text-ink font-bold text-sm">{otherProfile.full_name || otherProfile.username}</p>
                     {isOtherTyping ? (
                         <p className="text-purple-400 text-xs">yazıyor...</p>
                     ) : (
@@ -278,12 +275,8 @@ function ChatPage() {
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
                 {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center gap-2">
-                        {otherProfile.avatar_url ? (
-                            <img src={otherProfile.avatar_url} alt={otherProfile.username} className="w-16 h-16 rounded-full object-cover mb-2" />
-                        ) : (
-                            <div className="w-16 h-16 rounded-full bg-purple-500 mb-2" />
-                        )}
-                        <p className="text-white font-bold">{otherProfile.full_name || otherProfile.username}</p>
+                        <Avatar src={otherProfile.avatar_url} gender={otherProfile.gender} size={76} alt={otherProfile.username} />
+                        <p className="text-ink font-bold">{otherProfile.full_name || otherProfile.username}</p>
                         <p className="text-gray-500 text-sm">@{otherProfile.username}</p>
                         <p className="text-gray-500 text-sm mt-2">Henüz mesaj yok. Bir şeyler yaz!</p>
                     </div>
@@ -315,7 +308,7 @@ function ChatPage() {
                                     <div className="relative" ref={openMenuId === msg.id ? menuRef : null}>
                                         <button
                                             onClick={() => setOpenMenuId(openMenuId === msg.id ? null : msg.id)}
-                                            className="text-gray-600 hover:text-white transition p-1 opacity-0 group-hover:opacity-100"
+                                            className="text-gray-600 hover:text-ink transition p-1 opacity-0 group-hover:opacity-100"
                                         >
                                             <MoreVertical size={14} />
                                         </button>
@@ -334,19 +327,6 @@ function ChatPage() {
                                 )}
 
                                <div className="flex flex-col max-w-[70%]">
-                                    {msg.story_id && msg.story_preview_url && (
-                                        <div className={`flex items-center gap-2 mb-1 ${isMine ? 'flex-row-reverse' : ''}`}>
-                                            <img
-                                                src={msg.story_preview_url}
-                                                alt="hikaye"
-                                                className="w-10 h-14 rounded-lg object-cover border border-gray-700 shrink-0"
-                                            />
-                                            <span className="text-gray-500 text-xs flex items-center gap-1">
-                                                <ImageIcon size={12} />
-                                                {isMine ? 'Hikayesine cevap verdin' : 'Hikayene cevap verdi'}
-                                            </span>
-                                        </div>
-                                    )}
                                     {msg.image_url && (
                                         <img
                                             src={msg.image_url}
@@ -356,10 +336,10 @@ function ChatPage() {
                                     )}
                                     {msg.content && (
                                         <div
-                                            className={`px-4 py-2 rounded-2xl text-sm break-words ${
+                                            className={`px-4 py-2.5 rounded-3xl text-sm break-words ${
                                                 isMine
                                                     ? 'bg-purple-600 text-white rounded-br-sm'
-                                                    : 'bg-gray-800 text-white rounded-bl-sm'
+                                                    : 'bg-gray-800 text-ink rounded-bl-sm'
                                             }`}
                                         >
                                             {msg.content}
@@ -380,11 +360,7 @@ function ChatPage() {
                 {isOtherTyping && (
                     <div className="flex items-end gap-2 justify-start">
                         <div className="w-7 h-7 shrink-0">
-                            {otherProfile.avatar_url ? (
-                                <img src={otherProfile.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover" />
-                            ) : (
-                                <div className="w-7 h-7 rounded-full bg-purple-500" />
-                            )}
+                            <Avatar src={otherProfile.avatar_url} gender={otherProfile.gender} size={28} />
                         </div>
                         <div className="bg-gray-800 rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1 items-center">
                             <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
@@ -403,7 +379,7 @@ function ChatPage() {
                         <img src={imagePreview} alt="önizleme" className="h-20 rounded-xl border border-gray-700" />
                         <button
                             onClick={handleRemoveImage}
-                            className="absolute -top-2 -right-2 bg-gray-900 border border-gray-700 text-white rounded-full p-1 hover:bg-gray-800 transition"
+                            className="absolute -top-2 -right-2 bg-gray-900 border border-gray-700 text-ink rounded-full p-1 hover:bg-gray-800 transition"
                         >
                             <X size={14} />
                         </button>
@@ -427,7 +403,7 @@ function ChatPage() {
                     />
                     <textarea
                         placeholder="Mesaj yaz..."
-                        className="flex-1 bg-gray-800 text-white placeholder-gray-500 text-sm rounded-2xl px-4 py-3 resize-none outline-none max-h-32"
+                        className="flex-1 bg-gray-900 border border-gray-800 focus:border-purple-500 text-ink placeholder-gray-500 text-sm rounded-3xl px-4 py-3 resize-none outline-none max-h-32 transition"
                         rows={1}
                         value={newMessage}
                         onChange={handleInputChange}
@@ -436,7 +412,7 @@ function ChatPage() {
                     <button
                         onClick={handleSend}
                         disabled={(!newMessage.trim() && !imageFile) || sending}
-                        className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:opacity-50 text-white font-bold p-3 rounded-2xl transition shrink-0"
+                        className="bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold p-3 rounded-full transition shrink-0"
                     >
                         <Send size={18} />
                     </button>

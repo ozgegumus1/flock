@@ -1,14 +1,20 @@
-# Flock - Sosyal Medya Uygulaması
+# Flock
 
-Sıfırdan geliştirdiğim tam fonksiyonel sosyal medya uygulaması. Supabase Auth ile kayıt, giriş ve oturum yönetimi; gerçek zamanlı post paylaşımı ve listeleme; kalıcı beğeni sistemi; profil sayfası (biyografi, takipçi sayısı, kullanıcı postları); takip et / takipten çık; beğeni ve takip için Supabase trigger ile otomatik bildirimler. React Router ile korumalı rotalar, Context API ile global auth, mobil uyumlu arayüz ve alt menü. GitHub push ile Vercel üzerinde otomatik CI/CD yayını.
+Kadınların birbirine gerçek tavsiye verdiği, forum tarzında bir soru-cevap platformu. Kombin, ürün, güvenilir öneri ve indirim gibi konularda soru sorulur, anketlerle oy toplanır, deneyimler paylaşılır.
 
-## 🚀 Canlı Sürüm
-Uygulamayı canlı olarak incelemek için tıklayabilirsiniz:
+## Canlı Sürüm
 [flocksocial.vercel.app](https://flocksocial.vercel.app)
 
-## 🛠️ Kullanılan Teknolojiler ve Yapı
-* React & TypeScript
-* Supabase (Auth, Database, Triggers)
-* Context API (Global State)
-* React Router (Korumalı Rotalar)
-* Vercel (Otomatik CI/CD Deployment)
+## Özellikler
+* Konu başlıklarına ayrılmış sorular, "öne çıkanlar" akışı
+* Soru ve cevap beğenisi, yorum/cevap sistemi
+* Anketler: seçenekli (fotoğraflı), yıldız ve hızlı tepki
+* İndirim paylaşımı (fiyat, kupon kodu, bitiş tarihi)
+* Anonim soru sorma (kimlik diğer kullanıcılara görünmez)
+* E-posta/şifre ve Google ile giriş
+* Profil, takip, bildirimler, kaydedilenler, özel mesajlaşma, engelleme
+
+## Teknolojiler
+* React, TypeScript, Vite, Tailwind CSS
+* Supabase (Auth, PostgreSQL, Row Level Security, Storage, Triggers)
+* Vercel (otomatik CI/CD)

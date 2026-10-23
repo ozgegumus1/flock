@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
+import AuthLayout, { AUTH_INPUT, AUTH_PRIMARY } from '../components/AuthLayout'
 
 function ResetPasswordPage() {
     const navigate = useNavigate()
@@ -38,56 +39,42 @@ function ResetPasswordPage() {
     }
 
     return (
-        <div style={{ position: 'relative', minHeight: '100vh', background: '#07071a', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
-            <div style={{ width: '420px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', padding: '44px', backdropFilter: 'blur(24px)' }}>
-                <div style={{ fontSize: '26px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>Flock</div>
-
-                {success ? (
-                    <>
-                        <div style={{ fontSize: '15px', color: '#fff', fontWeight: 600, marginTop: '16px', marginBottom: '8px' }}>
-                            Şifren güncellendi!
-                        </div>
-                        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
-                            Anasayfaya yönlendiriliyorsun...
-                        </p>
-                    </>
-                ) : (
-                    <>
-                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '28px' }}>
-                            Yeni şifreni belirle
-                        </div>
-
+        <AuthLayout
+            title={success ? 'Şifren güncellendi' : 'Yeni şifre belirle'}
+            subtitle={success ? 'Ana sayfaya yönlendiriliyorsun...' : 'Hesabın için yeni bir şifre yaz.'}
+        >
+            {!success && (
+                <>
+                    <div className="space-y-3">
                         <input
                             type="password"
                             placeholder="Yeni şifre"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px 16px', color: '#fff', fontSize: '14px', outline: 'none', boxSizing: 'border-box', marginBottom: '12px' }}
+                            autoComplete="new-password"
+                            className={AUTH_INPUT}
                         />
-
                         <input
                             type="password"
                             placeholder="Yeni şifre (tekrar)"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
-                            style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px 16px', color: '#fff', fontSize: '14px', outline: 'none', boxSizing: 'border-box', marginBottom: '12px' }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSubmit()
+                            }}
+                            autoComplete="new-password"
+                            className={AUTH_INPUT}
                         />
+                    </div>
 
-                        {error && (
-                            <p style={{ color: '#f87171', fontSize: '13px', marginBottom: '12px' }}>{error}</p>
-                        )}
+                    {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
 
-                        <button
-                            onClick={handleSubmit}
-                            disabled={loading}
-                            style={{ width: '100%', background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', border: 'none', borderRadius: '12px', padding: '13px', color: '#fff', fontSize: '15px', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
-                            {loading ? 'Güncelleniyor...' : 'Şifreyi güncelle'}
-                        </button>
-                    </>
-                )}
-            </div>
-        </div>
+                    <button onClick={handleSubmit} disabled={loading} className={`${AUTH_PRIMARY} mt-4`}>
+                        {loading ? 'Kaydediliyor...' : 'Şifreyi güncelle'}
+                    </button>
+                </>
+            )}
+        </AuthLayout>
     )
 }
 

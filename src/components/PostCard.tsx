@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState, memo } from "react"
-import { Heart, MessageCircle, Trash2, MoreHorizontal, Pencil, Sticker, Flag, Bookmark } from "lucide-react"
+import { useEffect, useRef, useState, memo, type ReactNode } from "react"
+import { Heart, MessageCircle, Trash2, MoreHorizontal, Pencil, Flag, Bookmark } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "../supabase"
 import { useAuth } from "../context/AuthContext"
-import { GifPicker } from "./GifPicker"
+import ConfirmModal from "./ConfirmModal"
+import TeamBadge from "./TeamBadge"
+import { useToast } from "../context/ToastContext"
+import { NIL_UUID } from "../utils/ids"
+import Avatar from "./Avatar"
 
 function formatTimeAgo(dateString?: string): string {
   if (!dateString) return ''
@@ -35,9 +39,13 @@ interface PostCardProps {
   imageUrl?: string | null
   imageUrls?: string[] | null
   videoUrl?: string | null
+  extra?: ReactNode
+  isAnonymous?: boolean
+  gender?: string | null
+  isTeam?: boolean
 }
 
-function PostCardComponent({ username, handle, content, postId, avatarUrl, onDelete, createdAt, imageUrl, imageUrls, videoUrl }: PostCardProps) {
+function PostCardComponent({ username, handle, content, postId, avatarUrl, onDelete, createdAt, imageUrl, imageUrls, videoUrl, extra, isAnonymous, gender, isTeam }: PostCardProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
  const [liked, setLiked] = useState(false)
@@ -53,8 +61,16 @@ function PostCardComponent({ username, handle, content, postId, avatarUrl, onDel
   const [comments, setComments] = useState<any[]>([])
   const [commentCount, setCommentCount] = useState(0)
   const [newComment, setNewComment] = useState('')
-  const [pendingGif, setPendingGif] = useState<string | null>(null)
-  const [showGifPicker, setShowGifPicker] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const { showToast } = useToast()
+  const uid = user?.id ?? NIL_UUID
+
+  const requireLogin = () => {
+    if (user) return false
+    showToast('Devam etmek için giriş yapmalısın.', 'error')
+    navigate('/giris')
+    return true
+  }
   const [loadingComments, setLoadingComments] = useState(false)
   const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null)
   const [commentLikes, setCommentLikes] = useState<Record<string, { count: number; liked: boolean }>>({})
@@ -69,7 +85,22 @@ function PostCardComponent({ username, handle, content, postId, avatarUrl, onDel
   const [editContent, setEditContent] = useState(content)
   const [currentContent, setCurrentContent] = useState(content)
 
-  const isOwnPost = user?.user_metadata?.username === username
+  const [anonOwner, setAnonOwner] = useState(false)
+  const isOwnPost = isAnonymous ? anonOwner : user?.user_metadata?.username === username
+
+  useEffect(() => {
+    if (!isAnonymous) return
+    supabase
+      .from('anonymous_authors')
+      .select('post_id')
+      .eq('post_id', postId)
+      .maybeSingle()
+      .then(({ data }) => setAnonOwner(!!data))
+  }, [isAnonymous, postId])
+
+  const goToProfile = () => {
+    if (!isAnonymous) navigate(`/profil/${username}`)
+  }
 
 useEffect(() => {
     fetchLikes()
@@ -82,7 +113,7 @@ useEffect(() => {
       .from('saved_posts')
       .select('id')
       .eq('post_id', postId)
-      .eq('user_id', user?.id)
+      .eq('user_id', uid)
       .single()
 
     setSaved(!!data)
@@ -90,11 +121,12 @@ useEffect(() => {
 
   const handleToggleSave = async (e: React.MouseEvent) => {
     e.stopPropagation()
+    if (requireLogin()) return
     if (saved) {
-      await supabase.from('saved_posts').delete().eq('post_id', postId).eq('user_id', user?.id)
+      await supabase.from('saved_posts').delete().eq('post_id', postId).eq('user_id', uid)
       setSaved(false)
     } else {
-      await supabase.from('saved_posts').insert({ post_id: postId, user_id: user?.id })
+      await supabase.from('saved_posts').insert({ post_id: postId, user_id: uid })
       setSaved(true)
     }
   }
@@ -121,7 +153,7 @@ useEffect(() => {
       .from('likes')
       .select('*')
       .eq('post_id', postId)
-      .eq('user_id', user?.id)
+      .eq('user_id', uid)
       .single()
 
     setLiked(!!data)
@@ -181,7 +213,7 @@ useEffect(() => {
       commentIds.forEach((id: string) => { map[id] = { count: 0, liked: false } })
       ;(likesData ?? []).forEach((l: any) => {
         map[l.comment_id].count += 1
-        if (l.user_id === user?.id) map[l.comment_id].liked = true
+        if (l.user_id === uid) map[l.comment_id].liked = true
       })
       setCommentLikes(map)
     }
@@ -191,13 +223,14 @@ useEffect(() => {
 
   const handleToggleCommentLike = async (e: React.MouseEvent, commentId: string) => {
     e.stopPropagation()
+    if (requireLogin()) return
     const current = commentLikes[commentId] ?? { count: 0, liked: false }
 
     if (current.liked) {
-      await supabase.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', user?.id)
+      await supabase.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', uid)
       setCommentLikes((prev) => ({ ...prev, [commentId]: { count: current.count - 1, liked: false } }))
     } else {
-      await supabase.from('comment_likes').insert({ comment_id: commentId, user_id: user?.id })
+      await supabase.from('comment_likes').insert({ comment_id: commentId, user_id: uid })
       setCommentLikes((prev) => ({ ...prev, [commentId]: { count: current.count + 1, liked: true } }))
     }
   }
@@ -217,7 +250,7 @@ useEffect(() => {
       .from('comments')
       .update({ content: editCommentText.trim(), edited_at: new Date().toISOString() })
       .eq('id', commentId)
-      .eq('user_id', user?.id)
+      .eq('user_id', uid)
 
     setComments((prev) => prev.map((c) =>
       c.id === commentId ? { ...c, content: editCommentText.trim(), edited_at: new Date().toISOString() } : c
@@ -226,11 +259,12 @@ useEffect(() => {
   }
 
   const handleReportComment = async (reason: string) => {
+    if (requireLogin()) return
     if (!reportingCommentId) return
 
     await supabase.from('comment_reports').insert({
       comment_id: reportingCommentId,
-      reporter_id: user?.id,
+      reporter_id: uid,
       reason,
     })
 
@@ -246,10 +280,11 @@ useEffect(() => {
 
   const handleAddComment = async (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!newComment.trim() && !pendingGif) return
+    if (requireLogin()) return
+    if (!newComment.trim()) return
 
     if (newComment.length > 500) {
-      alert('Yorum en fazla 500 karakter olabilir.')
+      showToast('Yorum en fazla 500 karakter olabilir.', 'error')
       return
     }
 
@@ -257,10 +292,9 @@ useEffect(() => {
       .from('comments')
       .insert({
         post_id: postId,
-        user_id: user?.id,
+        user_id: uid,
         username: user?.user_metadata?.username,
         content: newComment.trim(),
-        gif_url: pendingGif,
       })
       .select()
       .single()
@@ -270,12 +304,6 @@ useEffect(() => {
       setCommentCount((c) => c + 1)
     }
     setNewComment('')
-    setPendingGif(null)
-  }
-
-  const handleSelectGif = (gifUrl: string) => {
-    setPendingGif(gifUrl)
-    setShowGifPicker(false)
   }
 
   const handleDeleteComment = async (e: React.MouseEvent, commentId: string) => {
@@ -284,7 +312,7 @@ useEffect(() => {
       .from('comments')
       .delete()
       .eq('id', commentId)
-      .eq('user_id', user?.id)
+      .eq('user_id', uid)
 
     setComments((prev) => prev.filter((c) => c.id !== commentId))
     setCommentCount((c) => Math.max(0, c - 1))
@@ -317,34 +345,42 @@ useEffect(() => {
     setIsEditing(false)
   }
 
-  const handleDeletePost = async (e: React.MouseEvent) => {
+  const handleDeletePost = (e: React.MouseEvent) => {
     e.stopPropagation()
     setShowMenu(false)
-    const confirmed = window.confirm('Bu postu silmek istediğine emin misin?')
-    if (!confirmed) return
+    setConfirmDelete(true)
+  }
 
-    await supabase
-      .from('posts')
-      .delete()
-      .eq('id', postId)
+  const performDeletePost = async () => {
+    setConfirmDelete(false)
+
+    if (isAnonymous) {
+      await supabase.rpc('delete_anonymous_post', { p_post_id: String(postId) })
+    } else {
+      await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId)
+    }
 
     if (onDelete) onDelete(postId)
   }
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation()
+    if (requireLogin()) return
     if (liked) {
       await supabase
         .from('likes')
         .delete()
         .eq('post_id', postId)
-        .eq('user_id', user?.id)
+        .eq('user_id', uid)
       setLiked(false)
       setLikeCount(likeCount - 1)
     } else {
       await supabase
         .from('likes')
-        .insert({ post_id: postId, user_id: user?.id })
+        .insert({ post_id: postId, user_id: uid })
       setLiked(true)
       setLikeCount(likeCount + 1)
       setLikePop(true)
@@ -356,31 +392,25 @@ useEffect(() => {
     <div className="border-b border-gray-800">
       <div className="flex gap-3 p-4 hover:bg-gray-900/50 transition cursor-pointer">
 
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={username}
-            loading="lazy"
-            decoding="async"
-            className="w-10 h-10 rounded-full object-cover shrink-0 cursor-pointer"
-            onClick={() => navigate(`/profil/${username}`)}
-          />
-        ) : (
-          <div
-            className="w-10 h-10 rounded-full bg-purple-500 shrink-0 cursor-pointer"
-            onClick={() => navigate(`/profil/${username}`)}
-          />
-        )}
+        <Avatar
+          src={avatarUrl}
+          gender={isAnonymous ? null : gender}
+          size={46}
+          alt={username}
+          onClick={goToProfile}
+          className={isAnonymous ? '' : 'cursor-pointer'}
+        />
 
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span
-                onClick={() => navigate(`/profil/${username}`)}
-                className="text-white font-bold cursor-pointer hover:underline">
-                {username}
+                onClick={goToProfile}
+                className={`text-ink font-bold ${isAnonymous ? '' : 'cursor-pointer hover:underline'}`}>
+                {isAnonymous ? 'Anonim' : username}
               </span>
-              <span className="text-gray-400 text-sm">{handle}</span>
+              {!isAnonymous && isTeam && <TeamBadge />}
+              {!isAnonymous && <span className="text-gray-400 text-sm">{handle}</span>}
               {createdAt && (
                 <>
                   <span className="text-gray-500 text-sm">·</span>
@@ -393,26 +423,28 @@ useEffect(() => {
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowMenu((s) => !s) }}
-                  className="text-gray-500 hover:text-white transition p-1 rounded-full hover:bg-gray-800"
+                  className="text-gray-500 hover:text-ink transition p-1 rounded-full hover:bg-gray-800"
                 >
                   <MoreHorizontal size={18} />
                 </button>
 
                 {showMenu && (
                   <div className="absolute right-0 top-full mt-1 bg-gray-900 border border-gray-700 rounded-xl shadow-lg overflow-hidden z-20 min-w-[140px]">
-                    <button
-                      onClick={handleStartEdit}
-                      className="flex items-center gap-2 w-full px-4 py-3 text-sm text-white hover:bg-gray-800 transition text-left"
-                    >
-                      <Pencil size={15} />
-                      Postu düzenle
-                    </button>
+                    {!isAnonymous && (
+                      <button
+                        onClick={handleStartEdit}
+                        className="flex items-center gap-2 w-full px-4 py-3 text-sm text-ink hover:bg-gray-800 transition text-left"
+                      >
+                        <Pencil size={15} />
+                        Soruyu düzenle
+                      </button>
+                    )}
                     <button
                       onClick={handleDeletePost}
                       className="flex items-center gap-2 w-full px-4 py-3 text-sm text-red-400 hover:bg-gray-800 transition text-left"
                     >
                       <Trash2 size={15} />
-                      Postu sil
+                      Soruyu sil
                     </button>
                   </div>
                 )}
@@ -425,13 +457,13 @@ useEffect(() => {
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
                 rows={3}
-                className="w-full bg-gray-900 border border-purple-500 rounded-xl px-3 py-2 text-white text-sm outline-none resize-none"
+                className="w-full bg-gray-900 border border-purple-500 rounded-xl px-3 py-2 text-ink text-sm outline-none resize-none"
                 autoFocus
               />
               <div className="flex justify-end gap-2 mt-2">
                 <button
                   onClick={handleCancelEdit}
-                  className="text-gray-400 hover:text-white text-xs font-bold px-3 py-1.5 rounded-full transition"
+                  className="text-gray-400 hover:text-ink text-xs font-bold px-3 py-1.5 rounded-full transition"
                 >
                   Vazgeç
                 </button>
@@ -444,14 +476,10 @@ useEffect(() => {
               </div>
             </div>
           ) : (
-            <p className="text-white mt-1 whitespace-pre-wrap break-words">
+            <p className="text-ink mt-1 whitespace-pre-wrap break-words">
               {currentContent.split(/(#[\p{L}\p{N}_]+)/gu).map((part, i) =>
                 part.startsWith('#') ? (
-                  <span
-                    key={i}
-                    onClick={(e) => { e.stopPropagation(); navigate(`/kesfet/hashtag/${part.slice(1)}`) }}
-                    className="text-purple-400 hover:underline cursor-pointer"
-                  >
+                  <span key={i} className="text-purple-400">
                     {part}
                   </span>
                 ) : (
@@ -532,6 +560,8 @@ useEffect(() => {
             )
           })()}
 
+          {extra && <div onClick={(e) => e.stopPropagation()}>{extra}</div>}
+
           <div className="flex items-center gap-5 mt-3">
             <div
               onClick={handleLike}
@@ -569,27 +599,7 @@ useEffect(() => {
       {showComments && (
         <div className="px-4 pb-4 pl-16" onClick={(e) => e.stopPropagation()}>
 
-          {pendingGif && (
-            <div className="relative mb-2 w-fit">
-              <img src={pendingGif} alt="seçilen gif" className="h-28 rounded-xl border border-gray-700" />
-              <button
-                onClick={() => setPendingGif(null)}
-                className="absolute -top-2 -right-2 bg-gray-900 border border-gray-700 text-white rounded-full p-1 hover:bg-gray-800 transition"
-              >
-                <MoreHorizontal size={0} className="hidden" />
-                ✕
-              </button>
-            </div>
-          )}
-
           <div className="flex gap-2 mb-3">
-            <button
-              onClick={() => setShowGifPicker(true)}
-              className="text-purple-400 hover:text-purple-300 transition p-2 rounded-full hover:bg-gray-900 shrink-0"
-              title="GIF ekle"
-            >
-              <Sticker size={20} />
-            </button>
             <input
               type="text"
               placeholder="Yorum yaz..."
@@ -599,7 +609,7 @@ useEffect(() => {
                 if (e.key === 'Enter') handleAddComment(e as any)
               }}
               maxLength={500}
-              className="flex-1 bg-gray-900 border border-gray-700 rounded-full px-4 py-2 text-sm text-white outline-none focus:border-purple-500 transition"
+              className="flex-1 bg-gray-900 border border-gray-700 rounded-full px-4 py-2 text-sm text-ink outline-none focus:border-purple-500 transition"
             />
             <button
               onClick={handleAddComment}
@@ -612,11 +622,11 @@ useEffect(() => {
           {loadingComments ? (
             <p className="text-gray-500 text-sm">Yükleniyor...</p>
           ) : comments.length === 0 ? (
-            <p className="text-gray-500 text-sm">Henüz yorum yok. İlk yorumu sen yap!</p>
+            <p className="text-gray-500 text-sm">Henüz cevap yok. İlk cevabı sen ver!</p>
           ) : (
             <div className="flex flex-col gap-2">
               {comments.map((comment: any) => {
-                const isMine = comment.user_id === user?.id
+                const isMine = comment.user_id === uid
                 const likeInfo = commentLikes[comment.id] ?? { count: 0, liked: false }
                 const isEditingThis = editingCommentId === comment.id
 
@@ -627,7 +637,7 @@ useEffect(() => {
                         <div className="flex items-center gap-2 min-w-0">
                           <span
                             onClick={() => navigate(`/profil/${comment.username}`)}
-                            className="text-white font-bold text-xs cursor-pointer hover:underline shrink-0"
+                            className="text-ink font-bold text-xs cursor-pointer hover:underline shrink-0"
                           >
                             {comment.username}
                           </span>
@@ -644,7 +654,7 @@ useEffect(() => {
                               openCommentMenuId === comment.id ? null : comment.id
                             )
                           }}
-                          className="text-gray-500 hover:text-white transition shrink-0"
+                          className="text-gray-500 hover:text-ink transition shrink-0"
                         >
                           <MoreHorizontal size={14} />
                         </button>
@@ -657,13 +667,13 @@ useEffect(() => {
                             value={editCommentText}
                             onChange={(e) => setEditCommentText(e.target.value)}
                             maxLength={500}
-                            className="w-full bg-gray-800 border border-purple-500 rounded-lg px-2 py-1 text-sm text-white outline-none"
+                            className="w-full bg-gray-800 border border-purple-500 rounded-lg px-2 py-1 text-sm text-ink outline-none"
                             autoFocus
                           />
                           <div className="flex justify-end gap-2 mt-1">
                             <button
                               onClick={() => setEditingCommentId(null)}
-                              className="text-gray-400 hover:text-white text-xs font-bold px-2 py-1"
+                              className="text-gray-400 hover:text-ink text-xs font-bold px-2 py-1"
                             >
                               Vazgeç
                             </button>
@@ -679,13 +689,6 @@ useEffect(() => {
                         <>
                           {comment.content && (
                             <p className="text-gray-200 text-sm mt-0.5 break-words">{comment.content}</p>
-                          )}
-                          {comment.gif_url && (
-                            <img
-                              src={comment.gif_url}
-                              alt="gif"
-                              className="mt-1.5 rounded-lg max-h-40 max-w-full border border-gray-800"
-                            />
                           )}
                         </>
                       )}
@@ -705,7 +708,7 @@ useEffect(() => {
                           <>
                             <button
                               onClick={(e) => handleStartEditComment(e, comment)}
-                              className="flex items-center gap-2 w-full px-3 py-2 text-xs text-white hover:bg-gray-800 transition text-left"
+                              className="flex items-center gap-2 w-full px-3 py-2 text-xs text-ink hover:bg-gray-800 transition text-left"
                             >
                               <Pencil size={13} />
                               Düzenle
@@ -741,12 +744,15 @@ useEffect(() => {
         </div>
       )}
 
-      {showGifPicker && (
-        <GifPicker
-          onSelect={handleSelectGif}
-          onClose={() => setShowGifPicker(false)}
-        />
-      )}
+      <ConfirmModal
+        open={confirmDelete}
+        title="Soruyu silmek istediğine emin misin?"
+        message="Bu işlem geri alınamaz."
+        confirmText="Sil"
+        danger
+        onConfirm={performDeletePost}
+        onCancel={() => setConfirmDelete(false)}
+      />
 
       {showLikers && (
         <div
@@ -758,8 +764,8 @@ useEffect(() => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-              <h3 className="text-white font-bold">Beğenenler</h3>
-              <button onClick={() => setShowLikers(false)} className="text-gray-400 hover:text-white transition">✕</button>
+              <h3 className="text-ink font-bold">Beğenenler</h3>
+              <button onClick={() => setShowLikers(false)} className="text-gray-400 hover:text-ink transition">✕</button>
             </div>
             <div className="overflow-y-auto px-2 py-2">
               {loadingLikers ? (
@@ -779,7 +785,7 @@ useEffect(() => {
                       <div className="w-10 h-10 rounded-full bg-purple-500" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-bold text-sm truncate">{u.full_name || u.username}</p>
+                      <p className="text-ink font-bold text-sm truncate">{u.full_name || u.username}</p>
                       <p className="text-gray-500 text-xs truncate">@{u.username}</p>
                     </div>
                   </div>
@@ -799,12 +805,12 @@ useEffect(() => {
             className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-xs p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-white font-bold mb-3">Yorumu şikayet et</h3>
+            <h3 className="text-ink font-bold mb-3">Yorumu şikayet et</h3>
             {['Spam', 'Taciz veya nefret söylemi', 'Uygunsuz içerik', 'Diğer'].map((reason) => (
               <button
                 key={reason}
                 onClick={() => handleReportComment(reason)}
-                className="flex items-center justify-between w-full px-3 py-2.5 text-sm text-white hover:bg-gray-800 rounded-lg transition text-left"
+                className="flex items-center justify-between w-full px-3 py-2.5 text-sm text-ink hover:bg-gray-800 rounded-lg transition text-left"
               >
                 {reason}
               </button>
