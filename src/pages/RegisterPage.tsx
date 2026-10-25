@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext'
 import GoogleButton from '../components/GoogleButton'
 import AuthLayout, { AUTH_INPUT, AUTH_PRIMARY } from '../components/AuthLayout'
 import ProfileFields, { validateProfile } from '../components/ProfileFields'
+import TurnstileWidget, { TURNSTILE_SITE_KEY } from '../components/TurnstileWidget'
 import type { ProfileValues } from '../components/ProfileFields'
 
 function RegisterPage() {
@@ -23,6 +24,8 @@ function RegisterPage() {
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+    const [captchaReset, setCaptchaReset] = useState(0)
 
     const handleRegister = async () => {
         const problem = validateProfile(values)
@@ -38,6 +41,11 @@ function RegisterPage() {
 
         if (password.length < 6) {
             showToast('Şifre en az 6 karakter olmalı.', 'error')
+            return
+        }
+
+        if (TURNSTILE_SITE_KEY && !captchaToken) {
+            showToast('Lütfen robot olmadığını doğrula.', 'error')
             return
         }
 
@@ -61,6 +69,7 @@ function RegisterPage() {
             email: email.trim(),
             password,
             options: {
+                captchaToken: captchaToken ?? undefined,
                 data: {
                     username: name,
                     full_name: values.fullName.trim(),
@@ -71,6 +80,8 @@ function RegisterPage() {
         })
 
         setLoading(false)
+        setCaptchaToken(null)
+        setCaptchaReset((n) => n + 1)
 
         if (error) {
             const message = error.message.toLowerCase()
@@ -136,6 +147,8 @@ function RegisterPage() {
                     </button>
                 </div>
             </ProfileFields>
+
+            <TurnstileWidget onToken={setCaptchaToken} resetKey={captchaReset} />
 
             <button onClick={handleRegister} disabled={loading} className={`${AUTH_PRIMARY} mt-5`}>
                 {loading ? 'Kaydediliyor...' : 'Kayıt ol'}

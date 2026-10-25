@@ -5,6 +5,7 @@ import { supabase } from '../supabase'
 import { useToast } from '../context/ToastContext'
 import GoogleButton from '../components/GoogleButton'
 import AuthLayout, { AUTH_INPUT, AUTH_PRIMARY } from '../components/AuthLayout'
+import TurnstileWidget, { TURNSTILE_SITE_KEY } from '../components/TurnstileWidget'
 
 function LoginPage() {
     const navigate = useNavigate()
@@ -13,6 +14,8 @@ function LoginPage() {
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+    const [captchaReset, setCaptchaReset] = useState(0)
 
     const handleLogin = async () => {
         if (!email.trim() || !password) {
@@ -20,11 +23,22 @@ function LoginPage() {
             return
         }
 
+        if (TURNSTILE_SITE_KEY && !captchaToken) {
+            showToast('Lütfen robot olmadığını doğrula.', 'error')
+            return
+        }
+
         setLoading(true)
 
-        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+        const { error } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+            options: { captchaToken: captchaToken ?? undefined },
+        })
 
         setLoading(false)
+        setCaptchaToken(null)
+        setCaptchaReset((n) => n + 1)
 
         if (error) {
             const message = error.message.toLowerCase()
@@ -90,6 +104,8 @@ function LoginPage() {
                     </Link>
                 </div>
             </div>
+
+            <TurnstileWidget onToken={setCaptchaToken} resetKey={captchaReset} />
 
             <button onClick={handleLogin} disabled={loading} className={`${AUTH_PRIMARY} mt-4`}>
                 {loading ? 'Giriş yapılıyor...' : 'Giriş yap'}

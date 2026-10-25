@@ -2,23 +2,35 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabase'
 import AuthLayout, { AUTH_INPUT, AUTH_PRIMARY } from '../components/AuthLayout'
+import TurnstileWidget, { TURNSTILE_SITE_KEY } from '../components/TurnstileWidget'
 
 function ForgotPasswordPage() {
     const [email, setEmail] = useState('')
     const [loading, setLoading] = useState(false)
     const [sent, setSent] = useState(false)
     const [error, setError] = useState('')
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+    const [captchaReset, setCaptchaReset] = useState(0)
 
     const handleSubmit = async () => {
         if (!email.trim()) return
         setError('')
+
+        if (TURNSTILE_SITE_KEY && !captchaToken) {
+            setError('Lütfen robot olmadığını doğrula.')
+            return
+        }
+
         setLoading(true)
 
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
             redirectTo: `${window.location.origin}/sifre-sifirla`,
+            captchaToken: captchaToken ?? undefined,
         })
 
         setLoading(false)
+        setCaptchaToken(null)
+        setCaptchaReset((n) => n + 1)
 
         if (resetError) {
             setError(resetError.message)
@@ -54,6 +66,8 @@ function ForgotPasswordPage() {
                         autoComplete="email"
                         className={AUTH_INPUT}
                     />
+
+                    <TurnstileWidget onToken={setCaptchaToken} resetKey={captchaReset} />
 
                     {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
 
