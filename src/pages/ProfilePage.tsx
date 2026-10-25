@@ -4,6 +4,7 @@ import { NIL_UUID } from '../utils/ids'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import Avatar from '../components/Avatar'
+import ReportModal from '../components/ReportModal'
 import { Settings, X, Pencil } from 'lucide-react'
 
 function ProfilePage() {
@@ -11,6 +12,7 @@ function ProfilePage() {
     const { username } = useParams()
     const { user } = useAuth()
     const uid = user?.id ?? NIL_UUID
+    const [reportOpen, setReportOpen] = useState(false)
     const [profile, setProfile] = useState<any>(null)
     const [posts, setPosts] = useState<any[]>([])
     const [followerCount, setFollowerCount] = useState(0)
@@ -260,10 +262,21 @@ function ProfilePage() {
                                     className="border border-red-600 text-red-400 text-sm font-bold px-4 py-2 rounded-full hover:bg-red-900/30 transition">
                                     {isBlocked ? 'Engeli Kaldır' : 'Engelle'}
                                 </button>
+                                <button
+                                    onClick={() => {
+                                        if (!user) {
+                                            navigate('/giris')
+                                            return
+                                        }
+                                        setReportOpen(true)
+                                    }}
+                                    className="text-gray-500 hover:text-orange-500 text-sm underline px-2 transition">
+                                    Şikayet et
+                                </button>
                                 {!isBlocked && (
                                     <button
                                         onClick={handleFollow}
-                                        className={`text-sm font-bold px-4 py-2 rounded-full transition ${isFollowing ? 'border border-gray-600 text-ink hover:bg-gray-800' : 'bg-white text-black hover:bg-gray-200'}`}>
+                                        className={`text-sm font-bold px-4 py-2 rounded-full transition ${isFollowing ? 'border border-gray-600 text-ink hover:bg-gray-800' : 'bg-purple-600 text-white hover:bg-purple-500'}`}>
                                         {isFollowing ? 'Takipten Çık' : 'Takip Et'}
                                     </button>
                                 )}
@@ -441,6 +454,12 @@ function ProfilePage() {
                 </div>
             )}
 
+            <ReportModal
+                open={reportOpen}
+                targetType="user"
+                targetId={profile?.id ?? ''}
+                onClose={() => setReportOpen(false)}
+            />
         </div>
     )
 }

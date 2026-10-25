@@ -5,6 +5,7 @@ import { supabase } from "../supabase"
 import { useAuth } from "../context/AuthContext"
 import ConfirmModal from "./ConfirmModal"
 import TeamBadge from "./TeamBadge"
+import ReportModal from "./ReportModal"
 import { useToast } from "../context/ToastContext"
 import { NIL_UUID } from "../utils/ids"
 import Avatar from "./Avatar"
@@ -62,6 +63,7 @@ function PostCardComponent({ username, handle, content, postId, avatarUrl, onDel
   const [commentCount, setCommentCount] = useState(0)
   const [newComment, setNewComment] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [reportingPost, setReportingPost] = useState(false)
   const { showToast } = useToast()
   const uid = user?.id ?? NIL_UUID
 
@@ -419,7 +421,7 @@ useEffect(() => {
               )}
             </div>
 
-            {isOwnPost && (
+            {(
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowMenu((s) => !s) }}
@@ -430,6 +432,8 @@ useEffect(() => {
 
                 {showMenu && (
                   <div className="absolute right-0 top-full mt-1 bg-gray-900 border border-gray-700 rounded-xl shadow-lg overflow-hidden z-20 min-w-[140px]">
+                    {isOwnPost ? (
+                    <>
                     {!isAnonymous && (
                       <button
                         onClick={handleStartEdit}
@@ -446,6 +450,21 @@ useEffect(() => {
                       <Trash2 size={15} />
                       Soruyu sil
                     </button>
+                    </>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowMenu(false)
+                          if (requireLogin()) return
+                          setReportingPost(true)
+                        }}
+                        className="flex items-center gap-2 w-full px-4 py-3 text-sm text-orange-500 hover:bg-gray-800 transition text-left"
+                      >
+                        <Flag size={15} />
+                        Şikayet et
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -743,6 +762,13 @@ useEffect(() => {
           )}
         </div>
       )}
+
+      <ReportModal
+        open={reportingPost}
+        targetType="post"
+        targetId={String(postId)}
+        onClose={() => setReportingPost(false)}
+      />
 
       <ConfirmModal
         open={confirmDelete}

@@ -1,7 +1,8 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import { useToast } from "./context/ToastContext";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import WelcomePage from "./pages/WelcomePage";
@@ -58,6 +59,15 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
 function App () {
   const {user, loading} = useAuth()
+  const { showToast } = useToast()
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search + '&' + window.location.hash.replace(/^#/, ''))
+    if (params.get('error') || params.get('error_code')) {
+      showToast('Giriş tamamlanamadı. Lütfen tekrar dene.', 'error')
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
 
   if(loading) return <FullScreenLoader />
 
