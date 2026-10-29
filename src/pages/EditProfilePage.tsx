@@ -122,7 +122,32 @@ function EditProfilePage() {
             return
         }
 
+        const cleanUsername = username.trim()
+
+        if (['anonim', 'admin', 'flock', 'destek'].includes(cleanUsername.toLowerCase())) {
+            showToast('Bu kullanıcı adı kullanılamaz, başka bir tane dene.', 'error')
+            return
+        }
+
+        if (!/^[a-zA-Z0-9_]{3,20}$/.test(cleanUsername)) {
+            showToast('Kullanıcı adı 3-20 karakter olmalı, sadece harf, rakam ve alt çizgi (_) içerebilir.', 'error')
+            return
+        }
+
         setLoading(true)
+
+        const { data: taken } = await supabase
+            .from('profiles')
+            .select('id')
+            .ilike('username', cleanUsername.replace(/[_%]/g, '\\$&'))
+            .neq('id', user?.id)
+            .maybeSingle()
+
+        if (taken) {
+            showToast('Bu kullanıcı adı alınmış, başka bir tane dene.', 'error')
+            setLoading(false)
+            return
+        }
 
         let newAvatarUrl = avatarUrl
         let newCoverUrl = coverUrl
@@ -165,10 +190,10 @@ function EditProfilePage() {
             }
         }
 
-        await supabase
+        const { error: updateError } = await supabase
             .from('profiles')
             .update({
-                username,
+                username: cleanUsername,
                 full_name: fullName,
                 bio,
                 avatar_url: newAvatarUrl,
@@ -176,10 +201,18 @@ function EditProfilePage() {
             })
             .eq('id', user?.id)
 
+        if (updateError) {
+            showToast('Profil güncellenemedi. Kullanıcı adı alınmış olabilir, tekrar dene.', 'error')
+            setLoading(false)
+            return
+        }
+
+        await supabase.auth.updateUser({ data: { username: cleanUsername, full_name: fullName } })
+
         setLoading(false)
         refreshProfile()
         showToast('Profilin güncellendi!', 'success')
-        navigate(`/profil/${username}`)
+        navigate(`/profil/${cleanUsername}`)
     }
 
     const currentAvatar = avatarRemoved ? null : (avatarPreview || avatarUrl)

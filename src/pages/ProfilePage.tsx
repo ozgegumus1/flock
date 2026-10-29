@@ -13,6 +13,7 @@ function ProfilePage() {
     const { user } = useAuth()
     const uid = user?.id ?? NIL_UUID
     const [reportOpen, setReportOpen] = useState(false)
+    const [notFound, setNotFound] = useState(false)
     const [profile, setProfile] = useState<any>(null)
     const [posts, setPosts] = useState<any[]>([])
     const [followerCount, setFollowerCount] = useState(0)
@@ -39,8 +40,15 @@ function ProfilePage() {
             .from('profiles')
             .select('*')
             .eq('username', username)
-            .single()
+            .maybeSingle()
 
+        if (!profileData) {
+            setProfile(null)
+            setNotFound(true)
+            return
+        }
+
+        setNotFound(false)
         setProfile(profileData)
 
         const { data: blockData } = await supabase
@@ -48,7 +56,7 @@ function ProfilePage() {
             .select('*')
             .eq('blocker_id', uid)
             .eq('blocked_id', profileData?.id)
-            .single()
+            .maybeSingle()
         setIsBlocked(!!blockData)
 
         const { data: blockedByData } = await supabase
@@ -56,7 +64,7 @@ function ProfilePage() {
             .select('*')
             .eq('blocker_id', profileData?.id)
             .eq('blocked_id', uid)
-            .single()
+            .maybeSingle()
         setBlockedByThem(!!blockedByData)
 
         if (!blockedByData) {
@@ -91,7 +99,7 @@ function ProfilePage() {
             .select('*')
             .eq('follower_id', uid)
             .eq('following_id', profileData?.id)
-            .single()
+            .maybeSingle()
 
     setIsFollowing(followData?.status === 'accepted')
 
@@ -101,7 +109,7 @@ function ProfilePage() {
             .eq('follower_id', profileData?.id)
             .eq('following_id', uid)
             .eq('status', 'accepted')
-            .single()
+            .maybeSingle()
 
         setFollowsMe(!!theyFollowMe)
     }
@@ -196,6 +204,19 @@ function ProfilePage() {
 
         await fetchProfile()
     }
+
+    if (notFound) return (
+        <div className="min-h-screen border-x border-gray-800 flex flex-col items-center justify-center text-center px-6">
+            <p className="text-ink font-bold text-lg">Bu kullanıcı bulunamadı</p>
+            <p className="text-gray-500 text-sm mt-1">Kullanıcı adını değiştirmiş ya da hesabını silmiş olabilir.</p>
+            <button
+                onClick={() => navigate('/')}
+                className="mt-4 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold px-5 py-2 rounded-full transition"
+            >
+                Ana sayfaya dön
+            </button>
+        </div>
+    )
 
     if (!profile) return <div className="flex-1 p-4 text-ink">Yükleniyor...</div>
 
