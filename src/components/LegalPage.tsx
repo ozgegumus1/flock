@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import Seo from './Seo'
 
 // Kendi iletişim e-postanı buraya yaz (sitede herkese görünecek).
 export const CONTACT_EMAIL = 'ozgegumus.1994@gmail.com'
@@ -27,6 +28,7 @@ export function List({ items }: { items: ReactNode[] }) {
 function LegalPage({ title, children }: { title: string; children: ReactNode }) {
     return (
         <div className="min-h-screen bg-gray-950 text-ink">
+            <Seo title={title} />
             <div className="max-w-2xl mx-auto px-5 py-10">
                 <Link to="/" className="text-purple-400 hover:text-purple-300 text-sm">
                     ← Flock'a dön

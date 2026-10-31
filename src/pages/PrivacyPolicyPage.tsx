@@ -57,6 +57,11 @@ function PrivacyPolicyPage() {
                     bağlantılarla saklanır. Bağlantıyı bilen biri fotoğrafı görebilir. Kişisel ya da hassas
                     görüntüleri paylaşmamanı öneririz.
                 </p>
+                <p>
+                    <strong className="text-white">Arama motorları:</strong> sorular ve cevaplar herkese açıktır ve
+                    Google gibi arama motorlarında görünebilir. Profil sayfaların arama motorlarına kapalıdır.
+                    Kimliğinin görünmesini istemediğin sorularda "Anonim sor" seçeneğini kullanabilirsin.
+                </p>
             </Section>
 
             <Section title="4. Anonim sorular">

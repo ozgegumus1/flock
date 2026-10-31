@@ -4,6 +4,7 @@ import { Moon, Sun } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import Avatar from './Avatar'
 import { topicTint } from '../utils/topicColors'
+import Seo from './Seo'
 
 export const AUTH_INPUT =
     'w-full bg-gray-900 border border-gray-800 text-ink placeholder-gray-500 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500 transition'
@@ -23,6 +24,7 @@ function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProps) {
 
     return (
         <div className="min-h-screen bg-gray-950 text-ink md:grid md:grid-cols-[1.05fr_1fr]">
+            <Seo title={title} />
 
             <aside className="hidden md:flex flex-col justify-between bg-purple-900 p-12 relative overflow-hidden">
                 <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-purple-800 opacity-60" />

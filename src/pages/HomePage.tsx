@@ -8,6 +8,7 @@ import { topicTint } from '../utils/topicColors'
 import QuestionFeed, { FeedSkeleton } from '../components/QuestionFeed'
 import type { FeedAuthor, FeedTopic } from '../components/QuestionFeed'
 import ViewToggle from '../components/ViewToggle'
+import Seo from '../components/Seo'
 
 function HomePage() {
     const { showToast } = useToast()
@@ -64,6 +65,15 @@ function HomePage() {
 
     return (
         <div className={`min-h-screen ${mode === 'grid' ? '' : 'border-x border-gray-800'}`}>
+            <Seo
+                jsonLd={{
+                    '@context': 'https://schema.org',
+                    '@type': 'WebSite',
+                    name: 'Flock',
+                    url: 'https://flocksocial.vercel.app/',
+                    description: 'Kadınların birbirine gerçek tavsiye verdiği soru-cevap platformu.',
+                }}
+            />
 
             <div className="sticky top-0 z-10 bg-gray-950/85 backdrop-blur border-b border-gray-800">
                 <div className="px-4 py-3 flex items-center justify-between gap-3">

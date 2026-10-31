@@ -7,6 +7,7 @@ import { useViewMode } from '../context/ViewModeContext'
 import QuestionFeed, { FeedSkeleton } from '../components/QuestionFeed'
 import type { FeedAuthor, FeedTopic } from '../components/QuestionFeed'
 import ViewToggle from '../components/ViewToggle'
+import Seo from '../components/Seo'
 import { getSuggestions } from '../utils/suggestions'
 
 const PAGE_SIZE = 20
@@ -122,6 +123,12 @@ function TopicPage() {
 
     return (
         <div className={`min-h-screen ${mode === 'grid' ? '' : 'border-x border-gray-800'}`}>
+            {topic && (
+                <Seo
+                    title={`${topic.name} soruları ve cevapları`}
+                    description={`${topic.description ?? topic.name} Flock'ta bu konudaki soruları oku, oy ver ya da kendi sorunu sor.`}
+                />
+            )}
 
             <div className="sticky top-0 z-10 bg-gray-950/85 backdrop-blur px-4 py-3 border-b border-gray-800 flex items-center gap-3">
                 <button

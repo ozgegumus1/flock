@@ -4,6 +4,7 @@ import { supabase } from '../supabase'
 import PostCard from '../components/PostCard'
 import PollBox from '../components/PollBox'
 import DealCard from '../components/DealCard'
+import Seo from '../components/Seo'
 
 function PostDetailPage() {
     const { postId } = useParams()
@@ -51,6 +52,26 @@ function PostDetailPage() {
 
     return (
         <div className="flex-1 min-h-screen border-x border-gray-800">
+            {post && (
+                <Seo
+                    title={post.title || (post.content ?? '').slice(0, 60) || 'Soru'}
+                    description={((post.content || post.title || '') as string).replace(/\s+/g, ' ').slice(0, 155)}
+                    image={post.image_urls?.[0] ?? post.image_url}
+                    type="article"
+                    jsonLd={{
+                        '@context': 'https://schema.org',
+                        '@type': 'DiscussionForumPosting',
+                        headline: post.title || (post.content ?? '').slice(0, 100),
+                        text: post.content ?? '',
+                        datePublished: post.created_at,
+                        url: `https://flocksocial.vercel.app/gonderi/${post.id}`,
+                        author: { '@type': 'Person', name: post.is_anonymous ? 'Anonim' : post.username },
+                        ...(post.image_urls?.length || post.image_url
+                            ? { image: post.image_urls?.length ? post.image_urls : [post.image_url] }
+                            : {}),
+                    }}
+                />
+            )}
             <div className="sticky top-0 bg-gray-950/80 backdrop-blur-sm px-4 py-3 border-b border-gray-800 flex items-center gap-4 z-10">
                 <button
                     onClick={() => navigate(-1)}

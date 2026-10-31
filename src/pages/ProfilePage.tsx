@@ -5,6 +5,7 @@ import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import Avatar from '../components/Avatar'
 import ReportModal from '../components/ReportModal'
+import Seo from '../components/Seo'
 import { Settings, X, Pencil } from 'lucide-react'
 
 function ProfilePage() {
@@ -228,6 +229,7 @@ function ProfilePage() {
 
     return (
         <div className="flex-1 min-h-screen border-x border-gray-800">
+            <Seo title={`@${profile.username}`} noindex />
 
             {profile.cover_url ? (
                 <img
