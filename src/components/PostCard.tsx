@@ -403,16 +403,16 @@ useEffect(() => {
           className={isAnonymous ? '' : 'cursor-pointer'}
         />
 
-        <div className="flex-1">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
               <span
                 onClick={goToProfile}
                 className={`text-ink font-bold ${isAnonymous ? '' : 'cursor-pointer hover:underline'}`}>
                 {isAnonymous ? 'Anonim' : username}
               </span>
               {!isAnonymous && isTeam && <TeamBadge />}
-              {!isAnonymous && <span className="text-gray-400 text-sm">{handle}</span>}
+              {!isAnonymous && <span className="text-gray-400 text-sm hidden sm:inline">{handle}</span>}
               {createdAt && (
                 <>
                   <span className="text-gray-500 text-sm">·</span>

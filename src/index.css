@@ -89,6 +89,11 @@ h1, h2 {
   overflow-x: hidden;
 }
 
+/* Çok uzun kelimeler kutudan taşmasın, satır sonunda kırılsın */
+[data-app] main {
+  overflow-wrap: anywhere;
+}
+
 /* Üst çubuğun altında kalan sayfa başlıkları yapışkan kalsın */
 [data-app] main .sticky.top-0 {
   top: 3.5rem;

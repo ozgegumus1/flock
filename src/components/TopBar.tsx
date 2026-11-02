@@ -152,13 +152,13 @@ function TopBar() {
                         <ThemeToggle />
                         <Link
                             to="/giris"
-                            className="text-sm font-bold text-ink hover:text-purple-500 px-3 py-2 transition"
+                            className="text-sm font-bold text-ink hover:text-purple-500 px-2 sm:px-3 py-2 transition"
                         >
                             Giriş yap
                         </Link>
                         <Link
                             to="/kayit"
-                            className="bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-full px-4 py-2 transition"
+                            className="bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-full px-3.5 sm:px-4 py-2 transition"
                         >
                             Kayıt ol
                         </Link>

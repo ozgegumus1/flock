@@ -184,7 +184,7 @@ function GridCard({ q, topic, author, showTopic }: { q: any; topic?: FeedTopic; 
                             {topic.emoji ?? '💬'} {topic.name}
                         </p>
                     )}
-                    <h3 className="font-display font-bold text-ink leading-snug line-clamp-2">{heading}</h3>
+                    <h3 className="font-display font-bold text-ink text-sm sm:text-base leading-snug line-clamp-3 sm:line-clamp-2">{heading}</h3>
                     <div className="mt-2 text-gray-500">
                         <Meta q={q} author={author} />
                     </div>
@@ -197,7 +197,7 @@ function GridCard({ q, topic, author, showTopic }: { q: any; topic?: FeedTopic; 
         <Link
             to={`/gonderi/${q.id}`}
             style={topicTint(topic?.slug)}
-            className="block mb-3 break-inside-avoid rounded-2xl p-4 hover:opacity-90 transition"
+            className="block mb-3 break-inside-avoid rounded-2xl p-3 sm:p-4 hover:opacity-90 transition"
         >
             {showTopic && topic && (
                 <p className="text-[11px] font-bold mb-2 opacity-80">
@@ -205,12 +205,12 @@ function GridCard({ q, topic, author, showTopic }: { q: any; topic?: FeedTopic; 
                 </p>
             )}
 
-            <h3 className="font-display font-bold text-xl leading-snug">{heading}</h3>
+            <h3 className="font-display font-bold text-base sm:text-xl leading-snug">{heading}</h3>
 
-            {deal && <p className="text-sm font-bold mt-2">🏷️ {deal}</p>}
+            {deal && <p className="text-xs sm:text-sm font-bold mt-2">🏷️ {deal}</p>}
 
             {q.title && q.content && (
-                <p className="text-sm mt-2 line-clamp-4 opacity-80">{q.content}</p>
+                <p className="text-xs sm:text-sm mt-2 line-clamp-4 opacity-80">{q.content}</p>
             )}
 
             {q.poll_type && (
@@ -247,7 +247,7 @@ function QuestionFeed({ questions, topics, authors, mode, showTopic = true }: Qu
     }
 
     return (
-        <div className="columns-2 md:columns-3 gap-3 p-4">
+        <div className="columns-2 md:columns-3 gap-2.5 sm:gap-3 p-3 sm:p-4">
             {questions.map((q) => (
                 <GridCard
                     key={q.id}
@@ -277,7 +277,7 @@ export function FeedSkeleton({ mode }: { mode: ViewMode }) {
     }
 
     return (
-        <div className="columns-2 md:columns-3 gap-3 p-4">
+        <div className="columns-2 md:columns-3 gap-2.5 sm:gap-3 p-3 sm:p-4">
             {['aspect-[4/5]', 'aspect-square', 'aspect-[3/4]', 'aspect-[5/6]', 'aspect-square', 'aspect-[4/5]'].map((r, i) => (
                 <div key={i} className={`${r} bg-gray-800 rounded-2xl mb-3 break-inside-avoid animate-pulse`} />
             ))}

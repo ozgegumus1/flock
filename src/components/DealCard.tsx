@@ -70,7 +70,7 @@ function DealCard({ deal }: { deal: Deal }) {
             </div>
 
             {(deal.price != null || deal.old_price != null) && (
-                <div className="flex items-end gap-3 mt-3">
+                <div className="flex flex-wrap items-end gap-x-3 gap-y-1 mt-3">
                     {deal.price != null && (
                         <span className="text-ink text-3xl font-bold leading-none">
                             {formatPrice(deal.price)}
