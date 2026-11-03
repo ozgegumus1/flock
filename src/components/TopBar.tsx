@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Bell, Bookmark, LogOut, Mail, Moon, Plus, Settings, Sun, User } from 'lucide-react'
+import { BarChart3, Bell, Bookmark, LogOut, Mail, Moon, Plus, Settings, Sun, User } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -134,6 +134,11 @@ function TopBar() {
                                     <Link to="/ayarlar" className={menuItem}>
                                         <Settings size={17} /> Ayarlar
                                     </Link>
+                                    {profile?.is_admin && (
+                                        <Link to="/yonetim" className={menuItem}>
+                                            <BarChart3 size={17} /> Yönetim
+                                        </Link>
+                                    )}
                                     <button
                                         onClick={() => {
                                             setMenuOpen(false)

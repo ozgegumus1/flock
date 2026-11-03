@@ -87,7 +87,8 @@ function PrivacyPolicyPage() {
                 />
                 <p>
                     Verilerini satmayız, reklam göstermek ya da seni profillemek için kullanmayız. Sitede reklam
-                    veya takip (analitik) çerezi yoktur.
+                    veya takip çerezi yoktur. Sitenin kaç kişi tarafından ziyaret edildiğini görmek için, seni
+                    tanımlamayan ve çerez kullanmayan anonim ziyaret istatistiği (Vercel Web Analytics) kullanıyoruz.
                 </p>
             </Section>
 

@@ -13,6 +13,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import HomePage from "./pages/HomePage";
 import { PullToRefresh } from "./components/PullToRefresh";
 import AppLayout from "./components/AppLayout";
+import { Analytics } from "@vercel/analytics/react";
 
 const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
@@ -30,6 +31,7 @@ const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
 const SavedPostsPage = lazy(() => import("./pages/SavedPostsPage"));
 const TopicPage = lazy(() => import("./pages/TopicPage"));
 const NewQuestionPage = lazy(() => import("./pages/NewQuestionPage"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
 
 function FullScreenLoader() {
   return (
@@ -87,6 +89,7 @@ function App () {
 
   return (
     <BrowserRouter>
+    <Analytics />
     <Routes>
 <Route path="/giris" element={!user ? <LoginPage /> : <Navigate to="/" />} />
 <Route path="/kayit" element={!user ? <RegisterPage /> : <Navigate to="/" />} />
@@ -106,6 +109,7 @@ function App () {
           <Route path="/profil/:username" element={<ProfilePage />} />
 
           <Route path="/yeni-soru" element={<RequireAuth><NewQuestionPage /></RequireAuth>} />
+          <Route path="/yonetim" element={<RequireAuth><AdminPage /></RequireAuth>} />
           <Route path="/profil-duzenle" element={<RequireAuth><EditProfilePage /></RequireAuth>} />
           <Route path="/kaydedilenler" element={<RequireAuth><SavedPostsPage /></RequireAuth>} />
           <Route path="/bildirimler" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
