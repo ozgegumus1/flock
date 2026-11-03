@@ -1,16 +1,33 @@
 import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import Seo from '../components/Seo'
+import ConfirmModal from '../components/ConfirmModal'
 
 interface DayRow {
     day: string
     users: number
     posts: number
     comments: number
+}
+
+interface Report {
+    id: string
+    created_at: string
+    target_type: 'post' | 'user'
+    target_id: string
+    reason: string
+    details: string | null
+    same_target: number
+    post_exists: boolean
+    post_title: string | null
+    post_content: string | null
+    post_username: string | null
+    post_anonymous: boolean | null
+    user_username: string | null
 }
 
 interface Stats {
@@ -78,25 +95,56 @@ function AdminPage() {
     const { showToast } = useToast()
     const [stats, setStats] = useState<Stats | null>(null)
     const [loading, setLoading] = useState(true)
+    const [reports, setReports] = useState<Report[]>([])
+    const [busyId, setBusyId] = useState<string | null>(null)
+    const [deleteTarget, setDeleteTarget] = useState<Report | null>(null)
 
     const isAdmin = !!profile?.is_admin
 
-    useEffect(() => {
-        if (!isAdmin) return
+    const loadAll = async () => {
+        const [statsResult, reportsResult] = await Promise.all([
+            supabase.rpc('admin_stats'),
+            supabase.rpc('admin_reports'),
+        ])
 
-        const load = async () => {
-            const { data, error } = await supabase.rpc('admin_stats')
-
-            if (error) {
-                showToast('İstatistikler yüklenemedi.', 'error')
-            } else {
-                setStats(data as Stats)
-            }
-            setLoading(false)
+        if (statsResult.error) {
+            showToast('İstatistikler yüklenemedi.', 'error')
+        } else {
+            setStats(statsResult.data as Stats)
         }
 
-        load()
+        if (reportsResult.error) {
+            showToast('Şikayetler yüklenemedi.', 'error')
+        } else {
+            setReports((reportsResult.data ?? []) as Report[])
+        }
+
+        setLoading(false)
+    }
+
+    useEffect(() => {
+        if (!isAdmin) return
+        loadAll()
     }, [isAdmin])
+
+    const resolve = async (report: Report, action: 'close' | 'delete_post') => {
+        setBusyId(report.id)
+
+        const { error } = await supabase.rpc('admin_resolve_report', {
+            p_report_id: report.id,
+            p_action: action,
+        })
+
+        setBusyId(null)
+
+        if (error) {
+            showToast('İşlem yapılamadı. Lütfen tekrar dene.', 'error')
+            return
+        }
+
+        showToast(action === 'delete_post' ? 'Soru silindi.' : 'Şikayet kapatıldı.', 'success')
+        await loadAll()
+    }
 
     if (profile && !isAdmin) return <Navigate to="/" replace />
 
@@ -122,6 +170,88 @@ function AdminPage() {
                             <StatCard label="Bekleyen şikayet" total={stats.reports_open} />
                             <StatCard label="Beğeni" total={stats.likes_total} />
                             <StatCard label="Anket oyu" total={stats.votes_total} />
+                        </div>
+
+                        <div>
+                            <h2 className="text-ink font-bold text-lg mb-3">
+                                Şikayetler {reports.length > 0 && <span className="text-purple-500">({reports.length})</span>}
+                            </h2>
+
+                            {reports.length === 0 ? (
+                                <p className="text-gray-500 text-sm bg-gray-900 border border-gray-800 rounded-2xl p-4">
+                                    Bekleyen şikayet yok.
+                                </p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {reports.map((r) => (
+                                        <div key={r.id} className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+                                            <div className="flex items-center gap-2 flex-wrap text-xs">
+                                                <span className="bg-purple-900 text-purple-300 font-bold rounded-full px-2.5 py-1">
+                                                    {r.target_type === 'post' ? 'Soru' : 'Kullanıcı'}
+                                                </span>
+                                                <span className="text-gray-500">
+                                                    {new Date(r.created_at).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                                {r.same_target > 1 && (
+                                                    <span className="text-orange-500 font-bold">{r.same_target} kişi şikayet etti</span>
+                                                )}
+                                            </div>
+
+                                            <p className="text-ink font-bold mt-2">{r.reason}</p>
+                                            {r.details && <p className="text-gray-400 text-sm mt-1">"{r.details}"</p>}
+
+                                            <div className="mt-3 bg-gray-950 border border-gray-800 rounded-xl p-3 text-sm">
+                                                {r.target_type === 'post' ? (
+                                                    r.post_exists ? (
+                                                        <>
+                                                            <p className="text-ink font-bold">{r.post_title || '(başlıksız)'}</p>
+                                                            {r.post_content && (
+                                                                <p className="text-gray-400 mt-1 line-clamp-3">{r.post_content}</p>
+                                                            )}
+                                                            <p className="text-gray-500 text-xs mt-2">
+                                                                Yazar: {r.post_anonymous ? 'Anonim' : `@${r.post_username}`}
+                                                            </p>
+                                                            <Link to={`/gonderi/${r.target_id}`} className="text-purple-500 hover:text-purple-400 text-xs font-bold mt-1 inline-block">
+                                                                Soruyu aç →
+                                                            </Link>
+                                                        </>
+                                                    ) : (
+                                                        <p className="text-gray-500">Bu soru zaten silinmiş.</p>
+                                                    )
+                                                ) : r.user_username ? (
+                                                    <>
+                                                        <p className="text-ink font-bold">@{r.user_username}</p>
+                                                        <Link to={`/profil/${r.user_username}`} className="text-purple-500 hover:text-purple-400 text-xs font-bold mt-1 inline-block">
+                                                            Profili aç →
+                                                        </Link>
+                                                    </>
+                                                ) : (
+                                                    <p className="text-gray-500">Bu hesap bulunamadı.</p>
+                                                )}
+                                            </div>
+
+                                            <div className="flex gap-2 mt-3">
+                                                {r.target_type === 'post' && r.post_exists && (
+                                                    <button
+                                                        onClick={() => setDeleteTarget(r)}
+                                                        disabled={busyId === r.id}
+                                                        className="flex-1 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-full py-2 transition disabled:opacity-50"
+                                                    >
+                                                        Soruyu sil
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => resolve(r, 'close')}
+                                                    disabled={busyId === r.id}
+                                                    className="flex-1 border border-gray-700 hover:bg-gray-800 text-ink text-sm font-bold rounded-full py-2 transition disabled:opacity-50"
+                                                >
+                                                    Şikayeti kapat
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div>
@@ -170,6 +300,20 @@ function AdminPage() {
                     </div>
                 </div>
             </div>
+
+            <ConfirmModal
+                open={deleteTarget !== null}
+                title="Bu soruyu silmek istediğine emin misin?"
+                message="Soru, cevapları ve oylarıyla birlikte silinir. Bu işlem geri alınamaz."
+                confirmText="Sil"
+                danger
+                onConfirm={() => {
+                    const target = deleteTarget
+                    setDeleteTarget(null)
+                    if (target) resolve(target, 'delete_post')
+                }}
+                onCancel={() => setDeleteTarget(null)}
+            />
         </div>
     )
 }
